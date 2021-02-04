@@ -1,0 +1,69 @@
+{
+  "settings": [
+    {
+      "id": "perc",
+      "name": "Percentage of points to overlap",
+      "description": "Define the percentage of locations that your Minimum Convex Polygon shall overlap (by individual, unit=%)",
+      "defaultValue": 95,
+      "type": "DOUBLE"
+    },
+	{
+      "id": "num",
+      "name": "Edge size",
+      "description": "Define edge size to view coastlines (in degrees of lon/lat)",
+      "defaultValue": 0.01,
+      "type": "DOUBLE"
+    }
+  ],
+  "dependencies": {
+    "R": [
+      {
+        "name": "move"
+      },
+      {
+        "name": "ggmap"
+      },
+	        {
+        "name": "adehabitatHR"
+      },
+	        {
+        "name": "shiny"
+      },
+	        {
+        "name": "fields"
+      },
+	        {
+        "name": "scales"
+      },
+	        {
+        "name": "lubridate"
+      }
+    ]
+  },
+  "createsArtifacts": true,
+  "license": {
+    "key": "MIT"
+  },
+  "language": "eng",
+  "keywords": [
+    "minimum convex polygon",
+    "MCP",
+    "home range",
+    "map"
+  ],
+  "people": [
+    {
+      "firstName": "Andrea",
+      "middleInitials": null,
+      "lastName": "Kölzsch",
+      "email": "akoelzsch@ab.mpg.de",
+      "roles": ["author", "creator"],
+      "orcid": "0000-0003-0193-1563",
+      "affiliation": "Max-Planck-Institute of Animal Behavior",
+      "affiliationRor": "https://ror.org/026stee22"
+    }
+  ],
+  "documentation" : {
+    "url": "https://github.com/andreakoelzsch/Minimum-Convex-Polygon/blob/main/README.md"
+  }
+}
