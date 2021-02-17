@@ -63,7 +63,7 @@ shinyModule <- function(input, output, session, data, num=0.01, perc=95) {
     mcp.data.df <- data.frame(mcp(data.spt,percent=perc,unin="m",unout="km2"))
     mcp.data.df$area <- round(mcp.data.df$area,digits=3)
     names(mcp.data.df)[2] <- "area (km2)"
-    write.csv(mcp.data.df,"MCP_areas.csv",row.names=FALSE)
+    write.csv(mcp.data.df,paste0(Sys.getenv(x = "APP_ARTIFACTS_DIR", "/tmp/"),"MCP_areas.csv"),row.names=FALSE)
 
   output$map <- renderPlot({
     mcpmap()
