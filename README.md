@@ -21,6 +21,7 @@ Shiny user interface (UI)
 
 ### Artefacts
 `MCP_areas.csv`: csv-file with Table of all individuals and the sizes of their calculated MCPs. Note that this is done only once for the initial setting of `perc`. Unit of the area values: km^2.
+
 `shapefile_output/`: the four shapefile files of the MCP polygons for input to a GIS software. The files are called `mcp.dbf`, `mcp.prj`, `mcp.shp` and `mcp.shx`. The files are only generated for the initial parameter settings.
 
 
