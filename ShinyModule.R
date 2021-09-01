@@ -41,6 +41,10 @@ shinyModule <- function(input, output, session, data, num=0.01, perc=95) {
     
     mcp.data <- reactive({ mcp(data.spt,percent=input$perc,unin="m",unout="km2") })
     mcpgeo.data <- reactive({ spTransform(mcp.data(),CRS("+proj=longlat +ellps=WGS84 +datum=WGS84 +towgs84=0,0,0")) })
+    
+    mcp.data.static <- mcp(data.spt,percent=perc,unin="m",unout="km2")
+    writeOGR(mcp.data.static,dsn=Sys.getenv(x = "APP_ARTIFACTS_DIR", "/tmp/"),layer="mcp",driver="ESRI Shapefile") 
+    
     id <- reactive({ mcp.data()$id  })
     cols <- reactive({ tim.colors(length(id())) })
       
@@ -63,7 +67,7 @@ shinyModule <- function(input, output, session, data, num=0.01, perc=95) {
     mcp.data.df <- data.frame(mcp(data.spt,percent=perc,unin="m",unout="km2"))
     mcp.data.df$area <- round(mcp.data.df$area,digits=3)
     names(mcp.data.df)[2] <- "area (km2)"
-    write.csv(mcp.data.df,paste0(Sys.getenv(x = "APP_ARTIFACTS_DIR", "/tmp/"),"MCP_areas.csv"),row.names=FALSE)
+    #write.csv(mcp.data.df,paste0(Sys.getenv(x = "APP_ARTIFACTS_DIR", "/tmp/"),"MCP_areas.csv"),row.names=FALSE)
 
   output$map <- renderPlot({
     mcpmap()
