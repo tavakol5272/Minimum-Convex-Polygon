@@ -6,7 +6,7 @@ library('fields')
 library('scales')
 library('lubridate')
 
-shinyModuleUserInterface <- function(id, label, num, perc=95) {
+shinyModuleUserInterface <- function(id, label, num=0.001, perc=95) {
   ns <- NS(id)
 
   tagList(
@@ -26,9 +26,9 @@ shinyModuleConfiguration <- function(id, input) {
   configuration
 }
 
-shinyModule <- function(input, output, session, data, num=0.01, perc=95) {
+shinyModule <- function(input, output, session, data, num, perc) {
     current <- reactiveVal(data)
-
+    
     n.all <- length(timestamps(data))
     data <- data[!duplicated(paste0(round_date(timestamps(data), "5 mins"), trackId(data))),]
     logger.info(paste0("For better performance, the data have been thinned to max 5 minute resolution. From the total ",n.all," positions, the algorithm retained ",length(timestamps(data))," positions for calculation."))
@@ -36,38 +36,34 @@ shinyModule <- function(input, output, session, data, num=0.01, perc=95) {
     data.sp <- move2ade(data)
     data.spt <- spTransform(data.sp,CRSobj=paste0("+proj=aeqd +lat_0=",round(mean(coordinates(data)[,2]),digits=1)," +lon_0=",round(mean(coordinates(data)[,1]),digits=1)," +x_0=0 +y_0=0 +ellps=WGS84 +datum=WGS84 +units=m +no_defs"))
     
-    data.geo <- as.data.frame(data)[,c("location_long","location_lat","local_identifier")]
-    data.geo$local_identifier <- gsub(" ",".",data.geo$local_identifier)
-    
+    data.geo <- as.data.frame(data)[,c("location_long","location_lat","trackId")] #trackId is already a valid name (validNames()), so no need to adapt
+
     mcp.data <- reactive({ mcp(data.spt,percent=input$perc,unin="m",unout="km2") })
     mcpgeo.data <- reactive({ spTransform(mcp.data(),CRS("+proj=longlat +ellps=WGS84 +datum=WGS84 +towgs84=0,0,0")) })
     
     mcp.data.static <- mcp(data.spt,percent=perc,unin="m",unout="km2")
-    writeOGR(mcp.data.static,dsn=Sys.getenv(x = "APP_ARTIFACTS_DIR", "/tmp/"),layer="mcp",driver="ESRI Shapefile") 
-    
-    id <- reactive({ mcp.data()$id  })
-    cols <- reactive({ tim.colors(length(id())) })
-      
+    writeOGR(mcp.data.static,dsn=Sys.getenv(x = "APP_ARTIFACTS_DIR", "/tmp/"),layer="mcp",driver="ESRI Shapefile")
+    #writeOGR(mcp.data.static,dsn="C:/tmp",layer="mcp",driver="ESRI Shapefile")
+
     map <- get_map(bbox(extent(data)+c(-num,num,-num,num)))
     
     mcpmap <- reactive({
       out <- ggmap(map) +
+        geom_point(data=data.geo, 
+                   aes(x=location_long, y=location_lat, col=trackId,shape='.'),show.legend=FALSE) +
         geom_polygon(data=fortify(mcpgeo.data()),
                      aes(long,lat,colour=id,fill=id),
                      alpha=0.3) +
-        geom_point(data=data.geo,
-                   aes(x=location_long, y=location_lat, colour=factor(local_identifier),shape='.'),show.legend=FALSE) +
         theme(legend.position=c(0.15,0.80)) +
         labs(x="Longitude", y="Latitude") +
-        scale_fill_manual(name="Animal", values=cols(), breaks=id()) +
-        scale_colour_manual(name="Animal",values=cols(), breaks=id())
+        scale_fill_manual(name="Animal", values=tim.colors(length(id)),aesthetics=c("colour","fill"))
       out
     })
     
     mcp.data.df <- data.frame(mcp(data.spt,percent=perc,unin="m",unout="km2"))
     mcp.data.df$area <- round(mcp.data.df$area,digits=3)
     names(mcp.data.df)[2] <- "area (km2)"
-    #write.csv(mcp.data.df,paste0(Sys.getenv(x = "APP_ARTIFACTS_DIR", "/tmp/"),"MCP_areas.csv"),row.names=FALSE)
+    write.csv(mcp.data.df,paste0(Sys.getenv(x = "APP_ARTIFACTS_DIR", "/tmp/"),"MCP_areas.csv"),row.names=FALSE)
 
   output$map <- renderPlot({
     mcpmap()
@@ -75,4 +71,3 @@ shinyModule <- function(input, output, session, data, num=0.01, perc=95) {
   
   return(reactive({ current() }))
 }
-
