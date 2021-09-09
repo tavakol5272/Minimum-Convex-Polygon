@@ -15,7 +15,7 @@ shinyModuleUserInterface <- function(id, label, num=0.001, perc=95) {
                 label = "Percentage of points the MCP should overlap", 
                 value = perc, min = 0, max = 100),
     plotOutput(ns("map"),height="80vh"),
-    actionButton(ns("act"),"Add shapefile to output")
+    actionButton(ns("act"),"Add shapefile to output (does not work yet)") #can change to downloadButton
   )
 }
 
@@ -66,6 +66,7 @@ shinyModule <- function(input, output, session, data, num, perc) {
     writeOGR(obj=mcpgeo.data(), dsn=Sys.getenv(x = "APP_ARTIFACTS_DIR", "/tmp/"), layer="mcp", 
              driver="ESRI Shapefile", overwrite_layer=TRUE)
   })
+  # if downloadButton then have to change this to downloadHandler and save a zip file of the shp files (help: https://stackoverflow.com/questions/47591070/r-download-shapefile-from-a-shiny-app)
     
   output$map <- renderPlot({
     mcpmap()
