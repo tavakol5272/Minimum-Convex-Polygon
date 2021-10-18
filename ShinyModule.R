@@ -51,7 +51,7 @@ shinyModule <- function(input, output, session, data, num, perc) {
        geom_polygon(data=fortify(mcpgeo.data()),
                      aes(long,lat,colour=id,fill=id),
                      alpha=0.3) +
-      theme(legend.position=c(0.15,0.80)) +
+      theme(legend.justification = "top") +
       labs(x="Longitude", y="Latitude") +
       scale_fill_manual(name="Animal", values=tim.colors(length(namesIndiv(data))),aesthetics=c("colour","fill"))
     out
@@ -59,8 +59,9 @@ shinyModule <- function(input, output, session, data, num, perc) {
     
   mcp.data.df <- data.frame(mcp(data.spt,percent=perc,unin="m",unout="km2"))
   mcp.data.df$area <- round(mcp.data.df$area,digits=3)
-  names(mcp.data.df)[2] <- "area (km2)"
+  names(mcp.data.df)[2] <- paste0("area (km2) - ",perc,"% MPC")
   write.csv(mcp.data.df,paste0(Sys.getenv(x = "APP_ARTIFACTS_DIR", "/tmp/"),"MCP_areas.csv"),row.names=FALSE)
+  #write.csv(mcp.data.df,"MCP_areas.csv",row.names=FALSE)
 
   observeEvent(input$act, {
     writeOGR(obj=mcpgeo.data(), dsn=Sys.getenv(x = "APP_ARTIFACTS_DIR", "/tmp/"), layer="mcp", 
