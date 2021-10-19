@@ -37,7 +37,9 @@ shinyModule <- function(input, output, session, data, num, perc) {
   data.sp <- move2ade(data)
   data.spt <- spTransform(data.sp,CRSobj=paste0("+proj=aeqd +lat_0=",round(mean(coordinates(data)[,2]),digits=1)," +lon_0=",round(mean(coordinates(data)[,1]),digits=1)," +x_0=0 +y_0=0 +ellps=WGS84 +datum=WGS84 +units=m +no_defs"))
     
-  data.geo <- as.data.frame(data)[,c("location_long","location_lat","trackId")] #trackId is already a valid name (validNames()), so no need to adapt
+  data.geo.all <- as.data.frame(data)
+  names(data.geo.all) <- make.names(names(data.geo.all),allow_=FALSE)
+  data.geo <- data.geo.all[,c("location.long","location.lat","trackId")] #trackId is already a valid name (validNames()), so no need to adapt
 
   mcp.data <- reactive({ mcp(data.spt,percent=input$perc,unin="m",unout="km2") })
   mcpgeo.data <- reactive({ spTransform(mcp.data(),CRS("+proj=longlat +ellps=WGS84 +datum=WGS84 +towgs84=0,0,0")) })
@@ -47,7 +49,7 @@ shinyModule <- function(input, output, session, data, num, perc) {
   mcpmap <- reactive({
     out <- ggmap(map) +
       geom_point(data=data.geo, 
-                 aes(x=location_long, y=location_lat, col=trackId,shape='.'),show.legend=FALSE) +
+                 aes(x=location.long, y=location.lat, col=trackId,shape='.'),show.legend=FALSE) +
        geom_polygon(data=fortify(mcpgeo.data()),
                      aes(long,lat,colour=id,fill=id),
                      alpha=0.3) +
