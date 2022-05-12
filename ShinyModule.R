@@ -33,18 +33,22 @@ shinyModule <- function(input, output, session, data, num, perc) {
   n.all <- length(timestamps(data))
   data <- data[!duplicated(paste0(round_date(timestamps(data), "5 mins"), trackId(data))),]
   logger.info(paste0("For better performance, the data have been thinned to max 5 minute resolution. From the total ",n.all," positions, the algorithm retained ",length(timestamps(data))," positions for calculation."))
+  
+  # exclude all individuals with less than 5 locations
+  data5 <- data[[which(n.locs(data)>=5)]]
+  if (any(n.locs(data)<5)) logger.info(paste("It is only possible to calculate Minimum Convex Polygons for tracks with at least 5 locations. In your data set the individual(s):",names(which(n.locs(data)<5)),"do not fulfill this requirement and are removed from the MCP analysis. They are still available in the output data set that is passed on to the next App."))
+  
+  data.sp <- move2ade(data5)
+  data.spt <- spTransform(data.sp,CRSobj=paste0("+proj=aeqd +lat_0=",round(mean(coordinates(data5)[,2]),digits=1)," +lon_0=",round(mean(coordinates(data5)[,1]),digits=1)," +x_0=0 +y_0=0 +ellps=WGS84 +datum=WGS84 +units=m +no_defs"))
     
-  data.sp <- move2ade(data)
-  data.spt <- spTransform(data.sp,CRSobj=paste0("+proj=aeqd +lat_0=",round(mean(coordinates(data)[,2]),digits=1)," +lon_0=",round(mean(coordinates(data)[,1]),digits=1)," +x_0=0 +y_0=0 +ellps=WGS84 +datum=WGS84 +units=m +no_defs"))
-    
-  data.geo.all <- as.data.frame(data)
+  data.geo.all <- as.data.frame(data5)
   names(data.geo.all) <- make.names(names(data.geo.all),allow_=FALSE)
   data.geo <- data.geo.all[,c("location.long","location.lat","trackId")] #trackId is already a valid name (validNames()), so no need to adapt
 
-  mcp.data <- reactive({ mcp(data.spt,percent=input$perc,unin="m",unout="km2") })
+  mcp.data <- reactive({ mcp(data.spt,percent=input$perc,unin="m",unout="km2") }) #mcp() need at least 5 locations per ID
   mcpgeo.data <- reactive({ spTransform(mcp.data(),CRS("+proj=longlat +ellps=WGS84 +datum=WGS84 +towgs84=0,0,0")) })
     
-  map <- get_map(bbox(extent(data)+c(-num,num,-num,num)))
+  map <- get_map(bbox(extent(data5)+c(-num,num,-num,num)))
 
   mcpmap <- reactive({
     out <- ggmap(map) +
@@ -55,7 +59,7 @@ shinyModule <- function(input, output, session, data, num, perc) {
                      alpha=0.3) +
       theme(legend.justification = "top") +
       labs(x="Longitude", y="Latitude") +
-      scale_fill_manual(name="Animal", values=tim.colors(length(namesIndiv(data))),aesthetics=c("colour","fill"))
+      scale_fill_manual(name="Animal", values=tim.colors(length(namesIndiv(data5))),aesthetics=c("colour","fill"))
     out
   })
     
