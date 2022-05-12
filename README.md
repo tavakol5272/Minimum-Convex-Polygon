@@ -9,9 +9,11 @@ Github repository: *github.com/andreakoelzsch/Minimum-Convex-Polygon*
 Calculate the individual MCPs of the your Animals' locations and have them plotted on a colourful map. An additional small output file provides the MCP sizes.
 
 ## Documentation
-After downsampling your data to maximum 5 minute resolution, this App calculates simple Minimum Convex Polygons (MCPs) for each individual of your data set. For calculating the planar shapes, the data set is first transformed to an equal area projection (+proj= +aeqd ...). The percentage of points that the MCP shall overlap can be defined by the user.
+After downsampling your data to maximum 5 minute resolution, this App calculates simple Minimum Convex Polygons (MCPs) for each individual of your data set. Note that calcualtion of MCP is only possible for tracks with at least 5 locations. Individual tracks with less locations are removed for this analysis, but are includedin the output data set for use in further Apps.
 
-The MCPs for each individual are then plotted on a OpenStreetMap of the area with transparent colours. Underneath, the downsampled locations are added in the same, individual specific colours. A csv-file with the area values of each MCP is added to the output for download. When pressing the button "save map" the presently calculated map with MCP can be downloaded.
+For calculating the planar MCP shapes, the data set is first transformed to an equal area projection (+proj= +aeqd ...). The percentage of points that the MCP shall overlap can be defined by the user.
+
+The MCPs for each individual are plotted on a OpenStreetMap of the area with transparent colours. Underneath, the downsampled locations (of the individuals with sufficiently long tracks) are added in the same, individual specific colours. A csv-file with the area values of each MCP is added to the output for download. When pressing the button "save map" the presently calculated map with MCP can be downloaded.
 
 ### Input data
 moveStack in Movebank format
