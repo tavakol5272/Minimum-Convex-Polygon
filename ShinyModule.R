@@ -35,13 +35,13 @@ shinyModule <- function(input, output, session, data, num, perc) {
   logger.info(paste0("For better performance, the data have been thinned to max 5 minute resolution. From the total ",n.all," positions, the algorithm retained ",length(timestamps(data))," positions for calculation."))
   
   # exclude all individuals with less than 5 locations
-  data5 <- data[[which(n.locs(data)>=5)]]
+  data5 <- moveStack(data[[which(n.locs(data)>=5)]])
   if (any(n.locs(data)<5)) logger.info(paste("It is only possible to calculate Minimum Convex Polygons for tracks with at least 5 locations. In your data set the individual(s):",names(which(n.locs(data)<5)),"do not fulfill this requirement and are removed from the MCP analysis. They are still available in the output data set that is passed on to the next App."))
   
   data.sp <- move2ade(data5)
   data.spt <- spTransform(data.sp,CRSobj=paste0("+proj=aeqd +lat_0=",round(mean(coordinates(data5)[,2]),digits=1)," +lon_0=",round(mean(coordinates(data5)[,1]),digits=1)," +x_0=0 +y_0=0 +ellps=WGS84 +datum=WGS84 +units=m +no_defs"))
     
-  data.geo.all <- as.data.frame(data5)
+  data.geo.all <- as.data.frame(data5) #hier trackId nur für MoveStacks, oben gezwungen
   names(data.geo.all) <- make.names(names(data.geo.all),allow_=FALSE)
   data.geo <- data.geo.all[,c("location.long","location.lat","trackId")] #trackId is already a valid name (validNames()), so no need to adapt
 
