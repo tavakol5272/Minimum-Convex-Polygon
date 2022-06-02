@@ -2,7 +2,7 @@ library(jsonlite)
 source("logger.R")
 source("ShinyModule.R")
 
-inputFileName = "input.rds"
+inputFileName = "App-Output Workflow_Instance_001__Movebank__2022-05-24_12-13-55_Parker.rds"
 outputFileName = "output.rds"
 
 if(file.exists("configuration.json")) {
@@ -24,6 +24,7 @@ if(file.exists("configuration.json")) {
 # Add your arguments of your r function here
 args[["num"]] = 0.001
 args[["perc"]] = 75
+args[["zoom"]] = 15
 
 #################################################################
 #################################################################

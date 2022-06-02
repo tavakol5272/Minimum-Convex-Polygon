@@ -6,7 +6,7 @@ library('fields')
 library('scales')
 library('lubridate')
 
-shinyModuleUserInterface <- function(id, label, num=0.001, perc=95) {
+shinyModuleUserInterface <- function(id, label, num=0.001, perc=95, zoom=10) {
   ns <- NS(id)
 
   tagList(
@@ -14,6 +14,9 @@ shinyModuleUserInterface <- function(id, label, num=0.001, perc=95) {
     sliderInput(inputId = ns("perc"), 
                 label = "Percentage of points the MCP should overlap", 
                 value = perc, min = 0, max = 100),
+    sliderInput(inputId = ns("zoom"), 
+                label = "Zoom of background map (possible values from 3 (continent) to 18 (building)). \n Depending on the data, high resolutions might not be possible.", 
+                value = zoom, min = 3, max = 18, step=1),
     plotOutput(ns("map"),height="80vh"),
     downloadButton(ns("act"),"Save map")
   )
@@ -27,12 +30,12 @@ shinyModuleConfiguration <- function(id, input) {
   configuration
 }
 
-shinyModule <- function(input, output, session, data, num, perc) {
+shinyModule <- function(input, output, session, data, num, perc, zoom) {
   current <- reactiveVal(data)
     
   n.all <- length(timestamps(data))
-  data <- data[!duplicated(paste0(round_date(timestamps(data), "5 mins"), trackId(data))),]
-  logger.info(paste0("For better performance, the data have been thinned to max 5 minute resolution. From the total ",n.all," positions, the algorithm retained ",length(timestamps(data))," positions for calculation."))
+  data <- data[!duplicated(paste0(round_date(timestamps(data), "1 mins"), trackId(data))),]
+  logger.info(paste0("For better performance, the data have been thinned to max 1 minute resolution. From the total ",n.all," positions, the algorithm retained ",length(timestamps(data))," positions for calculation."))
   
   # exclude all individuals with less than 5 locations
   data5 <- moveStack(data[[which(n.locs(data)>=5)]])
@@ -48,13 +51,15 @@ shinyModule <- function(input, output, session, data, num, perc) {
   mcp.data <- reactive({ mcp(data.spt,percent=input$perc,unin="m",unout="km2") }) #mcp() need at least 5 locations per ID
   mcpgeo.data <- reactive({ spTransform(mcp.data(),CRS("+proj=longlat +ellps=WGS84 +datum=WGS84 +towgs84=0,0,0")) })
     
-  map <- get_map(bbox(extent(data5)+c(-num,num,-num,num)))
+  map <- reactive({ get_map(bbox(extent(data5)+c(-num,num,-num,num)),source="osm",force=TRUE,zoom=input$zoom) })
 
   mcpmap <- reactive({
-    out <- ggmap(map) +
+    out <- ggmap(map()) +
       geom_point(data=data.geo, 
                  aes(x=location.long, y=location.lat, col=trackId,shape='.'),show.legend=FALSE) +
-       geom_polygon(data=fortify(mcpgeo.data()),
+      geom_path(data=data.geo, 
+                 aes(x=location.long, y=location.lat, col=trackId),show.legend=FALSE) +
+      geom_polygon(data=fortify(mcpgeo.data()),
                      aes(long,lat,colour=id,fill=id),
                      alpha=0.3) +
       theme(legend.justification = "top") +

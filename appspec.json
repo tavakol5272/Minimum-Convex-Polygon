@@ -8,6 +8,13 @@
       "type": "DOUBLE"
     },
 	{
+      "id": "zoom",
+      "name": "Zoom factor of underlying map.",
+      "description": "Select a value between 3(continent) and 18(building) defining the initial background (openstreetmap) map resolution. Note that, depending on your data, high resolutions might not be possible (leading to grey background). You can adapt the resolution interactively in the App UI. Default 10(city)",
+      "defaultValue": 10,
+      "type": "INTEGER"
+    },
+	{
       "id": "num",
       "name": "Edge size",
       "description": "Define edge size to view coastlines (in degrees of lon/lat)",
