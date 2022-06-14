@@ -18,7 +18,8 @@ shinyModuleUserInterface <- function(id, label, num=0.001, perc=95, zoom=10) {
                 label = "Zoom of background map (possible values from 3 (continent) to 18 (building)). \n Depending on the data, high resolutions might not be possible.", 
                 value = zoom, min = 3, max = 18, step=1),
     plotOutput(ns("map"),height="80vh"),
-    downloadButton(ns("act"),"Save map")
+    downloadButton(ns("act"),"Save map"),
+    downloadButton(ns("act2"),"Save MCP as shapefile")
   )
 }
 
@@ -74,13 +75,31 @@ shinyModule <- function(input, output, session, data, num, perc, zoom) {
   write.csv(mcp.data.df,paste0(Sys.getenv(x = "APP_ARTIFACTS_DIR", "/tmp/"),"MCP_areas.csv"),row.names=FALSE)
   #write.csv(mcp.data.df,"MCP_areas.csv",row.names=FALSE)
 
- 
   output$act <- downloadHandler(
     filename="MCP_map.png",
     content = function(file) {
       png(file)
       print(mcpmap())
       dev.off()
+    }
+  )
+  
+  output$act2 <- downloadHandler(
+    filename="MPC_shapefile.zip",
+    content = function(file) {
+      
+      temp_shp <- tempdir()
+      
+      writeOGR(mcpgeo.data(),dsn=temp_shp,layer="mcp",driver="ESRI Shapefile",overwrite_layer=TRUE)
+
+      zip::zip(
+        zipfile=file,
+        files = list.files(temp_shp,"mcp",full.names=TRUE),
+        #root = targetDirZipFile,
+        mode = "cherry-pick"
+      )
+      
+      #file.remove(temp_shp) - ask Clemens how to handle tempdir in MoveApps properly
     }
   )
   
