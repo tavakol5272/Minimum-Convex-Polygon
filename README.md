@@ -26,6 +26,8 @@ Shiny user interface (UI)
 
 `MPC_map.png`: png-file of the UI map view. Not in output overview, but direct download via button in UI.
 
+`MCP_shapefile.zip`: zipped shapefile of the MCP layers for upload to a GIS. Not in output overview, but direct download via button in UI.
+
 ### Parameters 
 `perc`: Defined percentage of locations that the MCP algorithm shall use for calculating the MCP. We use the mcp() implementation of the adehabitat package, where (100 minus `perc` percent of the) locations furthest away from the centroid (arithmetric mean of the coordinates for each animal) are removed. Unit: `%` (range 0-100).
 
