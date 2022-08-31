@@ -6,7 +6,7 @@ library('fields')
 library('scales')
 library('lubridate')
 
-shinyModuleUserInterface <- function(id, label, num=0.001, perc=95) {
+shinyModuleUserInterface <- function(id, label, num=0.001, perc=95, zoom=10) {
   ns <- NS(id)
 
   tagList(
@@ -14,8 +14,12 @@ shinyModuleUserInterface <- function(id, label, num=0.001, perc=95) {
     sliderInput(inputId = ns("perc"), 
                 label = "Percentage of points the MCP should overlap", 
                 value = perc, min = 0, max = 100),
+    sliderInput(inputId = ns("zoom"), 
+                label = "Zoom of background map (possible values from 3 (continent) to 18 (building)). \n Depending on the data, high resolutions might not be possible.", 
+                value = zoom, min = 3, max = 18, step=1),
     plotOutput(ns("map"),height="80vh"),
-    actionButton(ns("act"),"Add shapefile to output (does not work yet)") #can change to downloadButton
+    downloadButton(ns("act"),"Save map"),
+    downloadButton(ns("act2"),"Save MCP as shapefile")
   )
 }
 
@@ -27,35 +31,41 @@ shinyModuleConfiguration <- function(id, input) {
   configuration
 }
 
-shinyModule <- function(input, output, session, data, num, perc) {
+shinyModule <- function(input, output, session, data, num, perc, zoom) {
   current <- reactiveVal(data)
     
   n.all <- length(timestamps(data))
-  data <- data[!duplicated(paste0(round_date(timestamps(data), "5 mins"), trackId(data))),]
-  logger.info(paste0("For better performance, the data have been thinned to max 5 minute resolution. From the total ",n.all," positions, the algorithm retained ",length(timestamps(data))," positions for calculation."))
+  data <- data[!duplicated(paste0(round_date(timestamps(data), "1 mins"), trackId(data))),]
+  logger.info(paste0("For better performance, the data have been thinned to max 1 minute resolution. From the total ",n.all," positions, the algorithm retained ",length(timestamps(data))," positions for calculation."))
+  
+  # exclude all individuals with less than 5 locations
+  data5 <- moveStack(data[[which(n.locs(data)>=5)]])
+  if (any(n.locs(data)<5)) logger.info(paste("It is only possible to calculate Minimum Convex Polygons for tracks with at least 5 locations. In your data set the individual(s):",names(which(n.locs(data)<5)),"do not fulfill this requirement and are removed from the MCP analysis. They are still available in the output data set that is passed on to the next App."))
+  
+  data.sp <- move2ade(data5)
+  data.spt <- spTransform(data.sp,CRSobj=paste0("+proj=aeqd +lat_0=",round(mean(coordinates(data5)[,2]),digits=1)," +lon_0=",round(mean(coordinates(data5)[,1]),digits=1)," +x_0=0 +y_0=0 +ellps=WGS84 +datum=WGS84 +units=m +no_defs"))
     
-  data.sp <- move2ade(data)
-  data.spt <- spTransform(data.sp,CRSobj=paste0("+proj=aeqd +lat_0=",round(mean(coordinates(data)[,2]),digits=1)," +lon_0=",round(mean(coordinates(data)[,1]),digits=1)," +x_0=0 +y_0=0 +ellps=WGS84 +datum=WGS84 +units=m +no_defs"))
-    
-  data.geo.all <- as.data.frame(data)
+  data.geo.all <- as.data.frame(data5) #hier trackId nur für MoveStacks, oben gezwungen
   names(data.geo.all) <- make.names(names(data.geo.all),allow_=FALSE)
   data.geo <- data.geo.all[,c("location.long","location.lat","trackId")] #trackId is already a valid name (validNames()), so no need to adapt
 
-  mcp.data <- reactive({ mcp(data.spt,percent=input$perc,unin="m",unout="km2") })
+  mcp.data <- reactive({ mcp(data.spt,percent=input$perc,unin="m",unout="km2") }) #mcp() need at least 5 locations per ID
   mcpgeo.data <- reactive({ spTransform(mcp.data(),CRS("+proj=longlat +ellps=WGS84 +datum=WGS84 +towgs84=0,0,0")) })
     
-  map <- get_map(bbox(extent(data)+c(-num,num,-num,num)))
+  map <- reactive({ get_map(bbox(extent(data5)+c(-num,num,-num,num)),source="osm",force=TRUE,zoom=input$zoom) })
 
   mcpmap <- reactive({
-    out <- ggmap(map) +
+    out <- ggmap(map()) +
       geom_point(data=data.geo, 
                  aes(x=location.long, y=location.lat, col=trackId,shape='.'),show.legend=FALSE) +
-       geom_polygon(data=fortify(mcpgeo.data()),
+      geom_path(data=data.geo, 
+                 aes(x=location.long, y=location.lat, col=trackId),show.legend=FALSE) +
+      geom_polygon(data=fortify(mcpgeo.data()),
                      aes(long,lat,colour=id,fill=id),
                      alpha=0.3) +
       theme(legend.justification = "top") +
       labs(x="Longitude", y="Latitude") +
-      scale_fill_manual(name="Animal", values=tim.colors(length(namesIndiv(data))),aesthetics=c("colour","fill"))
+      scale_fill_manual(name="Animal", values=tim.colors(length(namesIndiv(data5))),aesthetics=c("colour","fill"))
     out
   })
     
@@ -65,14 +75,36 @@ shinyModule <- function(input, output, session, data, num, perc) {
   write.csv(mcp.data.df,paste0(Sys.getenv(x = "APP_ARTIFACTS_DIR", "/tmp/"),"MCP_areas.csv"),row.names=FALSE)
   #write.csv(mcp.data.df,"MCP_areas.csv",row.names=FALSE)
 
-  observeEvent(input$act, {
-    writeOGR(obj=mcpgeo.data(), dsn=Sys.getenv(x = "APP_ARTIFACTS_DIR", "/tmp/"), layer="mcp", 
-             driver="ESRI Shapefile", overwrite_layer=TRUE)
-  })
-  # if downloadButton then have to change this to downloadHandler and save a zip file of the shp files (help: https://stackoverflow.com/questions/47591070/r-download-shapefile-from-a-shiny-app)
-    
+  output$act <- downloadHandler(
+    filename="MCP_map.png",
+    content = function(file) {
+      png(file)
+      print(mcpmap())
+      dev.off()
+    }
+  )
+  
+  output$act2 <- downloadHandler(
+    filename="MPC_shapefile.zip",
+    content = function(file) {
+      
+      temp_shp <- tempdir()
+      
+      writeOGR(mcpgeo.data(),dsn=temp_shp,layer="mcp",driver="ESRI Shapefile",overwrite_layer=TRUE)
+
+      zip::zip(
+        zipfile=file,
+        files = list.files(temp_shp,"mcp",full.names=TRUE),
+        #root = targetDirZipFile,
+        mode = "cherry-pick"
+      )
+      
+      #file.remove(temp_shp) - ask Clemens how to handle tempdir in MoveApps properly
+    }
+  )
+  
   output$map <- renderPlot({
-    mcpmap()
+    print(mcpmap())
   })
   
   return(reactive({ current() }))
