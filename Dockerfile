@@ -25,6 +25,8 @@ RUN R -e 'remotes::install_version("adehabitatHR")'
 RUN R -e 'remotes::install_version("fields")'
 RUN R -e 'remotes::install_version("scales")'
 RUN R -e 'remotes::install_github("tidyverse/lubridate")'
+RUN R -e 'remotes::install_github("rgeos")'
+RUN R -e 'remotes::install_github("zip")'
 
 # copy the app as last as possible
 # therefore following builds can use the docker cache of the R dependency installations
@@ -32,3 +34,5 @@ COPY ShinyModule.R .
 
 # take a snapshot of all R dependencies
 RUN R -e 'renv::snapshot()'
+
+# export CONFIGURATION='{"num":0.01,"zoom":10,"perc":95}'
