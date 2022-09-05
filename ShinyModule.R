@@ -5,6 +5,8 @@ library('shiny')
 library('fields')
 library('scales')
 library('lubridate')
+library('rgeos')
+library('zip')
 
 shinyModuleUserInterface <- function(id, label, num=0.001, perc=95, zoom=10) {
   ns <- NS(id)
@@ -72,7 +74,7 @@ shinyModule <- function(input, output, session, data, num, perc, zoom) {
   mcp.data.df <- data.frame(mcp(data.spt,percent=perc,unin="m",unout="km2"))
   mcp.data.df$area <- round(mcp.data.df$area,digits=3)
   names(mcp.data.df)[2] <- paste0("area (km2) - ",perc,"% MPC")
-  write.csv(mcp.data.df,paste0(Sys.getenv(x = "APP_ARTIFACTS_DIR", "/tmp/"),"MCP_areas.csv"),row.names=FALSE)
+  write.csv(mcp.data.df,paste0(Sys.getenv(x = "APP_ARTIFACTS_DIR", "/tmp/"),"/MPC_areas.csv"),row.names=FALSE)
   #write.csv(mcp.data.df,"MCP_areas.csv",row.names=FALSE)
 
   output$act <- downloadHandler(
@@ -85,21 +87,21 @@ shinyModule <- function(input, output, session, data, num, perc, zoom) {
   )
   
   output$act2 <- downloadHandler(
-    filename="MPC_shapefile.zip",
+    filename="MPC_shapefile.zip", # for the browser / user
     content = function(file) {
+      # file: is a file path (string) of a nonexistent temp file, and writes the content to that file path
       
+      # our working directory
       temp_shp <- tempdir()
-      
       writeOGR(mcpgeo.data(),dsn=temp_shp,layer="mcp",driver="ESRI Shapefile",overwrite_layer=TRUE)
-
-      zip::zip(
-        zipfile=file,
-        files = list.files(temp_shp,"mcp",full.names=TRUE),
-        #root = targetDirZipFile,
+      # zip everything in our temp working directory and store the result in the expected file target
+      zip_content = zip::zip(
+        zipfile=file, # write into the file the shiny download-handler expects it
+        files = list.files(temp_shp,"mcp",full.names=TRUE), # list all files matching the given pattern 'mcp'
         mode = "cherry-pick"
       )
-      
-      #file.remove(temp_shp) - ask Clemens how to handle tempdir in MoveApps properly
+      # provide the generated zip file also as an app artefact
+      file.copy(file, paste0(Sys.getenv(x = "APP_ARTIFACTS_DIR", "/tmp/"),"/MPC_shapefile-artifact.zip"))
     }
   )
   
