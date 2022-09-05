@@ -95,7 +95,7 @@ shinyModule <- function(input, output, session, data, num, perc, zoom) {
       temp_shp <- tempdir()
       writeOGR(mcpgeo.data(),dsn=temp_shp,layer="mcp",driver="ESRI Shapefile",overwrite_layer=TRUE)
       # zip everything in our temp working directory and store the result in the expected file target
-      zip_content = zip::zip(
+      zip::zip(
         zipfile=file, # write into the file the shiny download-handler expects it
         files = list.files(temp_shp,"mcp",full.names=TRUE), # list all files matching the given pattern 'mcp'
         mode = "cherry-pick"
