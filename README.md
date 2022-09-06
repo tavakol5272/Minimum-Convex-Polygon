@@ -13,7 +13,7 @@ After downsampling your data to maximum 5 minute resolution, this App calculates
 
 For calculating the planar MCP shapes, the data set is first transformed to an equal area projection (+proj= +aeqd ...). The percentage of points that the MCP shall overlap can be defined by the user.
 
-The MCPs for each individual are plotted on a OpenStreetMap of the area with transparent colours. Underneath, the downsampled locations (of the individuals with sufficiently long tracks) are added in the same, individual specific colours. A csv-file with the area values of each MCP is added to the output for download. When pressing the button "save map" the presently calculated map with MCP can be downloaded.
+The MCPs for each individual are plotted on a OpenStreetMap of the area with transparent colours. Underneath, the downsampled locations (of the individuals with sufficiently long tracks) are added in the same, individual specific colours. A csv-file with the area values of each MCP is added to the output for download. When pressing the button "Save map" the presently calculated map with MCP can be downloaded as .png plot; when pressing hte button "Save MCP as shapefile" a zip file with the shapefile of the MCP will be downloaded and provided in the output overview.
 
 ### Input data
 moveStack in Movebank format

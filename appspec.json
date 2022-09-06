@@ -44,6 +44,12 @@
       },
 	        {
         "name": "lubridate"
+      },
+	  	        {
+        "name": "rgeos"
+      },	
+	  {
+        "name": "zip"
       }
     ]
   },
@@ -56,7 +62,8 @@
     "minimum convex polygon",
     "MCP",
     "home range",
-    "map"
+    "map",
+	"MCP shapefile"
   ],
   "people": [
     {
