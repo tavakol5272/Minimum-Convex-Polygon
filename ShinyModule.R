@@ -73,8 +73,8 @@ shinyModule <- function(input, output, session, data, num, perc, zoom) {
     
   mcp.data.df <- data.frame(mcp(data.spt,percent=perc,unin="m",unout="km2"))
   mcp.data.df$area <- round(mcp.data.df$area,digits=3)
-  names(mcp.data.df)[2] <- paste0("area (km2) - ",perc,"% MPC")
-  write.csv(mcp.data.df,paste0(Sys.getenv(x = "APP_ARTIFACTS_DIR", "/tmp/"),"/MPC_areas.csv"),row.names=FALSE)
+  names(mcp.data.df)[2] <- paste0("area (km2) - ",perc,"% MCP")
+  write.csv(mcp.data.df,paste0(Sys.getenv(x = "APP_ARTIFACTS_DIR", "/tmp/"),"/MCP_areas.csv"),row.names=FALSE)
   #write.csv(mcp.data.df,"MCP_areas.csv",row.names=FALSE)
 
   output$act <- downloadHandler(
@@ -87,7 +87,7 @@ shinyModule <- function(input, output, session, data, num, perc, zoom) {
   )
   
   output$act2 <- downloadHandler(
-    filename="MPC_shapefile.zip", # for the browser / user
+    filename="MCP_shapefile.zip", # for the browser / user
     content = function(file) {
       # file: is a file path (string) of a nonexistent temp file, and writes the content to that file path
       
@@ -101,7 +101,7 @@ shinyModule <- function(input, output, session, data, num, perc, zoom) {
         mode = "cherry-pick"
       )
       # provide the generated zip file also as an app artefact
-      file.copy(file, paste0(Sys.getenv(x = "APP_ARTIFACTS_DIR", "/tmp/"),"/MPC_shapefile-artifact.zip"))
+      file.copy(file, paste0(Sys.getenv(x = "APP_ARTIFACTS_DIR", "/tmp/"),"/MCP_shapefile-artifact.zip"))
     }
   )
   
