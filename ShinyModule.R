@@ -8,32 +8,36 @@ library('lubridate')
 library('rgeos')
 library('zip')
 
-shinyModuleUserInterface <- function(id, label, num=0.001, perc=95, zoom=10) {
+shinyModuleUserInterface <- function(id, label) {
   ns <- NS(id)
 
   tagList(
     titlePanel("Minimum Convex Polygon(s) on a Map"),
-    sliderInput(inputId = ns("perc"), 
-                label = "Percentage of points the MCP should overlap", 
-                value = perc, min = 0, max = 100),
-    sliderInput(inputId = ns("zoom"), 
-                label = "Zoom of background map (possible values from 3 (continent) to 18 (building)). \n Depending on the data, high resolutions might not be possible.", 
-                value = zoom, min = 3, max = 18, step=1),
+    fluidRow(
+      column(4,sliderInput(inputId = ns("num"), 
+                           label = "Choose a margin size", 
+                           value = 0.001, min = 0, max = 30)),
+      column(4,sliderInput(inputId = ns("perc"), 
+                            label = "Percentage of points the MCP should overlap",                   value = 95, min = 0, max = 100)),
+      column(4,sliderInput(inputId = ns("zoom"), 
+                           label = "Zoom of background map (possible values from 3 (continent) to 18 (building)). \n Depending on the data, high resolutions might not be possible.", 
+                           value = 10, min = 3, max = 18, step=1))
+    ),
     plotOutput(ns("map"),height="80vh"),
     downloadButton(ns("act"),"Save map"),
     downloadButton(ns("act2"),"Save MCP as shapefile")
   )
 }
 
-shinyModuleConfiguration <- function(id, input) {
-  ns <- NS(id)
-  
-  configuration <- list()
-  
-  configuration
-}
+#shinyModuleConfiguration <- function(id, input) {
+#  ns <- NS(id)
+#  
+#  configuration <- list()
+#  
+#  configuration
+#}
 
-shinyModule <- function(input, output, session, data, num, perc, zoom) {
+shinyModule <- function(input, output, session, data) {
   current <- reactiveVal(data)
     
   n.all <- length(timestamps(data))
@@ -54,7 +58,7 @@ shinyModule <- function(input, output, session, data, num, perc, zoom) {
   mcp.data <- reactive({ mcp(data.spt,percent=input$perc,unin="m",unout="km2") }) #mcp() need at least 5 locations per ID
   mcpgeo.data <- reactive({ spTransform(mcp.data(),CRS("+proj=longlat +ellps=WGS84 +datum=WGS84 +towgs84=0,0,0")) })
     
-  map <- reactive({ get_map(bbox(extent(data5)+c(-num,num,-num,num)),source="osm",force=TRUE,zoom=input$zoom) })
+  map <- reactive({ get_map(bbox(extent(data5)+c(-input$num,input$num,-input$num,input$num)),source="osm",force=TRUE,zoom=input$zoom) })
 
   mcpmap <- reactive({
     out <- ggmap(map()) +
@@ -71,9 +75,9 @@ shinyModule <- function(input, output, session, data, num, perc, zoom) {
     out
   })
     
-  mcp.data.df <- data.frame(mcp(data.spt,percent=perc,unin="m",unout="km2"))
+  mcp.data.df <- data.frame(mcp(data.spt,percent=input$perc,unin="m",unout="km2"))
   mcp.data.df$area <- round(mcp.data.df$area,digits=3)
-  names(mcp.data.df)[2] <- paste0("area (km2) - ",perc,"% MCP")
+  names(mcp.data.df)[2] <- paste0("area (km2) - ",input$perc,"% MCP")
   write.csv(mcp.data.df,paste0(Sys.getenv(x = "APP_ARTIFACTS_DIR", "/tmp/"),"/MCP_areas.csv"),row.names=FALSE)
   #write.csv(mcp.data.df,"MCP_areas.csv",row.names=FALSE)
 
