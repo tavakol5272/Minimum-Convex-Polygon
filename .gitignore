@@ -2,4 +2,8 @@
 .Rhistory
 .RData
 .Ruserdata
-output.rds
+data/output
+.cache/
+.config/
+.local/
+shiny_bookmarks/
