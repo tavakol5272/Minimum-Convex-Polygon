@@ -28,6 +28,9 @@
       },	
 	  {
         "name": "zip"
+      },
+      {
+        "name":"shinyBS"
       }
     ]
   },

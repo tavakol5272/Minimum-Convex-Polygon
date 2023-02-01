@@ -7,6 +7,7 @@ library('scales')
 library('lubridate')
 library('rgeos')
 library('zip')
+library("shinyBS")
 
 shinyModuleUserInterface <- function(id, label) {
   ns <- NS(id)
@@ -22,13 +23,14 @@ shinyModuleUserInterface <- function(id, label) {
                     label = "Percentage of points the MCP should overlap", 
                     value = 95, min = 0, max = 100),
         sliderInput(inputId = ns("zoom"), 
-                    label = "Zoom of background map (possible values from 3 (continent) to 18 (building)). \n Depending on the data, high resolutions might not be possible.", 
+                    label = "Resolution of background map", 
                     value = 5, min = 3, max = 18, step=1),
+        bsTooltip(id=ns("zoom"), title="Zoom of background map (possible values from 3 (continent) to 18 (building)). Depending on the data, high resolutions might not be possible.", placement = "bottom", trigger = "hover", options = list(container = "body")),
         downloadButton(ns("act"),"Save map"),
         downloadButton(ns("act2"),"Save MCP as shapefile")
         ,width = 2),
       mainPanel(
-        plotOutput(ns("map"),height="90vh")
+        plotOutput(ns("map"),height="85vh")
       ,width = 10)
     )
   )

@@ -33,7 +33,11 @@ Shiny user interface (UI)
 
 `Choose a margin size`: Edge area of map around bounding box of the locations for better visibility. Unit: degrees. Default is 0.001. Note that this parameter cannot be interactively changed in the UI, but only set in the Settings in the WFI.
 
+`Resolution of background map`: Zoom of background map (possible values from 3 (continent) to 18 (building)). Depending on the data, high resolutions might not be possible. Default is 5.
+
 ### Null or error handling:
 **Parameter `Percentage of points the MCP should overlap`:** A default of 95 percent is provided and is retained if the input values is changed to NULL. If numbers above `100` are provided then the mcp function uses 100 percent of all locations. Negative values are not tolerated and will lead to an error.
+
+**Parameter `Resolution of background map`:** A high value for a large area translates into many tiles that need to be downloaded and it will take a very long time to compile the background map, or even crash before doing so.
 
 **Data:** The data are not manipulated in this App, but interactively explored. So that a possible Workflow can be continued after this App, the input data set is returned.
