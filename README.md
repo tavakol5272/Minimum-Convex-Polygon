@@ -29,11 +29,11 @@ Shiny user interface (UI)
 `MCP_shapefile.zip`: zipped shapefile of the MCP layers for upload to a GIS. Not in output overview, but direct download via button in UI.
 
 ### Parameters 
-`perc`: Defined percentage of locations that the MCP algorithm shall use for calculating the MCP. We use the mcp() implementation of the adehabitat package, where (100 minus `perc` percent of the) locations furthest away from the centroid (arithmetric mean of the coordinates for each animal) are removed. Unit: `%` (range 0-100).
+`Percentage of points the MCP should overlap`: Defined percentage of locations that the MCP algorithm shall use for calculating the MCP. We use the mcp() implementation of the adehabitat package, where (100 minus `perc` percent of the) locations furthest away from the centroid (arithmetric mean of the coordinates for each animal) are removed. Unit: `%` (range 0-100).
 
-`num`: Edge area of map around bounding box of the locations for better visibility. Unit: degrees. Default is 0.001. Note that this parameter cannot be interactively changed in the UI, but only set in the Settings in the WFI.
+`Choose a margin size`: Edge area of map around bounding box of the locations for better visibility. Unit: degrees. Default is 0.001. Note that this parameter cannot be interactively changed in the UI, but only set in the Settings in the WFI.
 
 ### Null or error handling:
-**Parameter `perc`:** A default of 95 percent is provided and is retained if the input values is changed to NULL. If numbers above `100` are provided then the mcp function uses 100 percent of all locations. Negative values are not tolerated and will lead to an error.
+**Parameter `Percentage of points the MCP should overlap`:** A default of 95 percent is provided and is retained if the input values is changed to NULL. If numbers above `100` are provided then the mcp function uses 100 percent of all locations. Negative values are not tolerated and will lead to an error.
 
 **Data:** The data are not manipulated in this App, but interactively explored. So that a possible Workflow can be continued after this App, the input data set is returned.
