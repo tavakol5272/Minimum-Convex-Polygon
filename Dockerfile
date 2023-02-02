@@ -1,38 +1,43 @@
-FROM registry.gitlab.com/couchbits/movestore/movestore-groundcontrol/co-pilot-v1-shiny:geospatial-4.1.2-2809
+########################################################################################################################
+# co-pilot: R-Shiny-characterstic.
+# This co-pilot implements the `R-Shiny`-characterstic.
+# Concrete move-store-r-shiny apps could use this image ase its base.
+########################################################################################################################
 
-# install system dependencies required by this app
-# install phantomJS
-RUN apt-get update \
-    && apt-get install -qq -y --no-install-recommends \
-      build-essential chrpath libssl-dev libxft-dev \
-      libfreetype6 libfreetype6-dev \
-      libfontconfig1 libfontconfig1-dev \
-    && apt-get clean
-ENV PHANTOM_JS phantomjs-2.1.1-linux-x86_64
-RUN wget https://github.com/Medium/phantomjs/releases/download/v2.1.1/$PHANTOM_JS.tar.bz2 \
-    && tar xvjf $PHANTOM_JS.tar.bz2 \
-    && mv $PHANTOM_JS /usr/local/share \
-    && ln -sf /usr/local/share/$PHANTOM_JS/bin/phantomjs /usr/local/bin \
-    && echo phantomjs --version
-# end install phantomJS
+FROM rocker/geospatial:4.2.1
 
-WORKDIR /root/app
+LABEL maintainer = "couchbits GmbH <us@couchbits.com>"
 
-# install the R dependencies this app needs
-RUN R -e 'remotes::install_version("move")'
-RUN R -e 'remotes::install_version("ggmap")'
-RUN R -e 'remotes::install_version("adehabitatHR")'
-RUN R -e 'remotes::install_version("fields")'
-RUN R -e 'remotes::install_version("scales")'
-RUN R -e 'remotes::install_github("tidyverse/lubridate")'
-RUN R -e 'remotes::install_github("rgeos")'
-RUN R -e 'remotes::install_github("zip")'
+# Security Aspects
+# group `staff` b/c of:
+# When running rocker with a non-root user the docker user is still able to install packages.
+# The user docker is member of the group staff and could write to /usr/local/lib/R/site-library.
+# https://github.com/rocker-org/rocker/wiki/managing-users-in-docker
+#  (to simplify things we use the same directory as for co-pilot-r)
+RUN useradd --create-home --shell /bin/bash moveapps --groups staff
+USER moveapps:staff
 
-# copy the app as last as possible
-# therefore following builds can use the docker cache of the R dependency installations
-COPY ShinyModule.R .
+WORKDIR /home/moveapps/co-pilot-r
 
-# take a snapshot of all R dependencies
-RUN R -e 'renv::snapshot()'
+# renv
+ENV RENV_VERSION 0.15.5
+RUN R -e "install.packages('remotes', repos = c(CRAN = 'https://cloud.r-project.org'))"
+RUN R -e "remotes::install_github('rstudio/renv@${RENV_VERSION}')"
+COPY --chown=moveapps:staff renv.lock .Rprofile ./
+COPY --chown=moveapps:staff renv/activate.R renv/settings.dcf ./renv/
 
-# export CONFIGURATION='{"num":0.01,"zoom":10,"perc":95}'
+# copy the SDK
+COPY --chown=moveapps:staff src/ ./src/
+COPY --chown=moveapps:staff data/ ./data/
+COPY --chown=moveapps:staff www/ ./www/
+COPY --chown=moveapps:staff co-pilot-sdk.R ShinyModule.R boot.R start-process.sh ./
+# configure shiny
+COPY --chown=moveapps:staff Rprofile.site /usr/local/lib/R/etc/
+RUN mkdir ./data/output
+# and restore the R libraries
+RUN R -e 'renv::restore()'
+
+# shiny port
+EXPOSE 3838
+
+ENTRYPOINT ["/bin/bash"]
