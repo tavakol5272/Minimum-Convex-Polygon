@@ -18,7 +18,7 @@ shinyModuleUserInterface <- function(id, label) {
       sidebarPanel(
         sliderInput(inputId = ns("num"), 
                     label = "Choose a margin size", 
-                    value = 0.001, min = 0, max = 30),
+                    value = 0.001, min = 0, max = 30, step=0.01),
         sliderInput(inputId = ns("perc"), 
                     label = "Percentage of points the MCP should overlap", 
                     value = 95, min = 0, max = 100),
