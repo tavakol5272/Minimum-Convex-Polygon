@@ -47,6 +47,9 @@ shinyModule <- function(input, output, session, data) {
   data5 <- moveStack(data[[which(n.locs(data)>=5)]])
   if (any(n.locs(data)<5)) logger.info(paste("It is only possible to calculate Minimum Convex Polygons for tracks with at least 5 locations. In your data set the individual(s):",names(which(n.locs(data)<5)),"do not fulfill this requirement and are removed from the MCP analysis. They are still available in the output data set that is passed on to the next App."))
   
+  mcpmap.re <- reactiveVal()
+  mcpgeo.data.re <- reactiveVal()
+  
   output$map <- renderPlot({
   data.sp <- move2ade(data5)
   data.spt <- spTransform(data.sp,CRSobj=paste0("+proj=aeqd +lat_0=",round(mean(coordinates(data5)[,2]),digits=1)," +lon_0=",round(mean(coordinates(data5)[,1]),digits=1)," +x_0=0 +y_0=0 +ellps=WGS84 +datum=WGS84 +units=m +no_defs"))
@@ -57,7 +60,7 @@ shinyModule <- function(input, output, session, data) {
 
   mcp.data <- mcp(data.spt,percent=input$perc,unin="m",unout="km2")  #mcp() need at least 5 locations per ID
   mcpgeo.data <- spTransform(mcp.data,CRS("+proj=longlat +ellps=WGS84 +datum=WGS84 +towgs84=0,0,0")) 
-    
+
   # map <- get_map(bbox(extent(data5)+c(-input$num,input$num,-input$num,input$num)),source="osm",force=TRUE,zoom=input$zoom)
   map <- get_map(bbox(extent(data5)+c(-input$num,input$num,-input$num,input$num)),source="stamen",force=TRUE,zoom=input$zoom)
 
@@ -79,6 +82,9 @@ shinyModule <- function(input, output, session, data) {
   write.csv(mcp.data.df,file=appArtifactPath("MCP_areas.csv"),row.names=FALSE)
   #write.csv(mcp.data.df,"MCP_areas.csv",row.names=FALSE)
   
+  mcpgeo.data.re(mcpgeo.data)
+  mcpmap.re(mcpmap)
+  
   print(mcpmap)
   })
   
@@ -86,7 +92,7 @@ shinyModule <- function(input, output, session, data) {
     filename="MCP_map.png",
     content = function(file) {
       png(file)
-      print(mcpmap)
+      print(mcpmap.re())
       dev.off()
     }
   )
@@ -98,7 +104,7 @@ shinyModule <- function(input, output, session, data) {
       
       # our working directory
       temp_shp <- tempdir()
-      writeOGR(mcpgeo.data,dsn=temp_shp,layer="mcp",driver="ESRI Shapefile",overwrite_layer=TRUE)
+      writeOGR(mcpgeo.data.re(),dsn=temp_shp,layer="mcp",driver="ESRI Shapefile",overwrite_layer=TRUE)
       # zip everything in our temp working directory and store the result in the expected file target
       zip::zip(
         zipfile=file, # write into the file the shiny download-handler expects it
@@ -106,7 +112,7 @@ shinyModule <- function(input, output, session, data) {
         mode = "cherry-pick"
       )
       # provide the generated zip file also as an app artefact
-      file.copy(file, file=appArtifactPath("MCP_shapefile-artifact.zip"))
+      #file.copy(file, file=appArtifactPath("MCP_shapefile-artifact.zip"))
     }
   )
   
