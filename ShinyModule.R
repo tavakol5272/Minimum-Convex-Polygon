@@ -1,7 +1,8 @@
-library('move')
+library('move2')
 library('ggmap')
 library('adehabitatHR')
 library('shiny')
+library('shinycssloaders')
 library('fields')
 library('scales')
 library('lubridate')
@@ -26,11 +27,12 @@ shinyModuleUserInterface <- function(id, label) {
                     label = "Resolution of background map", 
                     value = 5, min = 3, max = 18, step=1),
         bsTooltip(id=ns("zoom"), title="Zoom of background map (possible values from 3 (continent) to 18 (building)). Depending on the data, high resolutions might not be possible.", placement = "bottom", trigger = "hover", options = list(container = "body")),
+        textInput(ns("api"), "Enter your stadia API key. (This is required until MoveApps provides its OSM mirror. Register with stamen, it is free: https://stadiamaps.com/stamen/onboarding/create-account", value = ""),
         downloadButton(ns("act"),"Save map"),
         downloadButton(ns("act2"),"Save MCP as shapefile")
         ,width = 2),
       mainPanel(
-        plotOutput(ns("map"),height="85vh")
+        withSpinner(plotOutput(ns("map"),height="85vh"))
       ,width = 10)
     )
   )
@@ -39,30 +41,35 @@ shinyModuleUserInterface <- function(id, label) {
 shinyModule <- function(input, output, session, data) {
   current <- reactiveVal(data)
     
-  n.all <- length(timestamps(data))
-  data <- data[!duplicated(paste0(round_date(timestamps(data), "1 mins"), trackId(data))),]
-  logger.info(paste0("For better performance, the data have been thinned to max 1 minute resolution. From the total ",n.all," positions, the algorithm retained ",length(timestamps(data))," positions for calculation."))
+  n.all <- length(mt_time(data))
+  data <- data[!duplicated(paste0(round_date(mt_time(data), "1 mins"), mt_track_id(data))),]
+  logger.info(paste0("For better performance, the data have been thinned to max 1 minute resolution. From the total ",n.all," positions, the algorithm retained ",length(mt_time(data))," positions for calculation."))
   
   # exclude all individuals with less than 5 locations
-  data5 <- moveStack(data[[which(n.locs(data)>=5)]])
-  if (any(n.locs(data)<5)) logger.info(paste("It is only possible to calculate Minimum Convex Polygons for tracks with at least 5 locations. In your data set the individual(s):",names(which(n.locs(data)<5)),"do not fulfill this requirement and are removed from the MCP analysis. They are still available in the output data set that is passed on to the next App."))
+  data5 <- data[mt_track_id(data) %in% names(which(table(mt_track_id(data))>=5)),]
+  if (any(table(mt_track_id(data))<5)) logger.info(paste("It is only possible to calculate Minimum Convex Polygons for tracks with at least 5 locations. In your data set the individual(s):",names(which(table(mt_track_id(data))<5)),"do not fulfill this requirement and are removed from the MCP analysis. They are still available in the output data set that is passed on to the next App."))
   
   mcpmap.re <- reactiveVal()
   mcpgeo.data.re <- reactiveVal()
   
   output$map <- renderPlot({
-  data.sp <- move2ade(data5)
-  data.spt <- spTransform(data.sp,CRSobj=paste0("+proj=aeqd +lat_0=",round(mean(coordinates(data5)[,2]),digits=1)," +lon_0=",round(mean(coordinates(data5)[,1]),digits=1)," +x_0=0 +y_0=0 +ellps=WGS84 +datum=WGS84 +units=m +no_defs"))
+  data5_move1 <- to_move(data5)
+  data.sp <- move2ade(data5_move1)
+  data.spt <- spTransform(data.sp,CRSobj=paste0("+proj=aeqd +lat_0=",round(mean(coordinates(data5_move1)[,2]),digits=1)," +lon_0=",round(mean(coordinates(data5_move1)[,1]),digits=1)," +x_0=0 +y_0=0 +ellps=WGS84 +datum=WGS84 +units=m +no_defs"))
     
-  data.geo.all <- as.data.frame(data5) #hier trackId nur für MoveStacks, oben gezwungen
+  data.geo.all <- as.data.frame(data5_move1) #hier trackId nur für MoveStacks, oben gezwungen
   names(data.geo.all) <- make.names(names(data.geo.all),allow_=FALSE)
+  if(!any(names(data.geo.all)=="location.long")) data.geo.all$location.long <- data.geo.all$coords.x1
+  if(!any(names(data.geo.all)=="location.lat")) data.geo.all$location.lat <- data.geo.all$coords.x2
   data.geo <- data.geo.all[,c("location.long","location.lat","trackId")] #trackId is already a valid name (validNames()), so no need to adapt
 
-  mcp.data <- mcp(data.spt,percent=input$perc,unin="m",unout="km2")  #mcp() need at least 5 locations per ID
+  mcp.data <- mcp(data.spt,percent=input$perc,unin="m",unout="km2")  #mcp() need at least 5 locations per ID, is projected to aeqd in metre!
   mcpgeo.data <- spTransform(mcp.data,CRS("+proj=longlat +ellps=WGS84 +datum=WGS84 +towgs84=0,0,0")) 
 
+  if(input$api=="") logger.info("no API key entered") else register_stadiamaps(input$api)
+  
   # map <- get_map(bbox(extent(data5)+c(-input$num,input$num,-input$num,input$num)),source="osm",force=TRUE,zoom=input$zoom)
-  map <- get_map(bbox(extent(data5)+c(-input$num,input$num,-input$num,input$num)),source="stamen",force=TRUE,zoom=input$zoom)
+  map <- get_stadiamap(bbox(extent(data5_move1)+c(-input$num,input$num,-input$num,input$num)),source="stamen_terrain",force=TRUE,zoom=input$zoom)
 
   mcpmap <- ggmap(map) +
       geom_point(data=data.geo, 
@@ -74,7 +81,7 @@ shinyModule <- function(input, output, session, data) {
                      alpha=0.3) +
       theme(legend.justification = "top") +
       labs(x="Longitude", y="Latitude") +
-      scale_fill_manual(name="Animal", values=tim.colors(length(namesIndiv(data5))),aesthetics=c("colour","fill"))
+      scale_fill_manual(name="Animal", values=tim.colors(length(namesIndiv(data5_move1))),aesthetics=c("colour","fill"))
     
   mcp.data.df <- data.frame(mcp(data.spt,percent=input$perc,unin="m",unout="km2"))
   mcp.data.df$area <- round(mcp.data.df$area,digits=3)

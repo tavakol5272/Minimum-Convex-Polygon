@@ -15,11 +15,13 @@ For calculating the planar MCP shapes, the data set is first transformed to an e
 
 The MCPs for each individual are plotted on a OpenStreetMap of the area with transparent colours. Underneath, the downsampled locations (of the individuals with sufficiently long tracks) are added in the same, individual specific colours. A csv-file with the area values of each MCP is added to the output for download. When pressing the button "Save map" the presently calculated map with MCP can be downloaded as .png plot; when pressing hte button "Save MCP as shapefile" a zip file with the shapefile of the MCP will be downloaded and provided in the output overview.
 
+Note that this visualisation requires you to enter an API key from stadia, as it uses their background maps. This is only a workaround for a few months until MoveApps provides an own OSM mirror. Register for a stadia API here, it is free: https://stadiamaps.com/stamen/onboarding/create-account.
+
 ### Input data
-moveStack in Movebank format
+move2 location
 
 ### Output data
-Shiny user interface (UI)
+move2 location
 
 ### Artefacts
 `MCP_areas.csv`: csv-file with Table of all individuals and the sizes of their calculated MCPs. Note that this is done only once for the initial setting of `perc`. Unit of the area values: km^2.
