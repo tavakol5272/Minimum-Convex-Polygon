@@ -5,6 +5,9 @@
       {
         "name": "move"
       },
+	        {
+        "name": "move2"
+      },
       {
         "name": "ggmap"
       },
@@ -13,6 +16,9 @@
       },
 	        {
         "name": "shiny"
+      },
+	  	        {
+        "name": "shinycssloaders"
       },
 	        {
         "name": "fields"

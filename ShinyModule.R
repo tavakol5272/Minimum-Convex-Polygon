@@ -1,4 +1,5 @@
 library('move2')
+library('move')
 library('ggmap')
 library('adehabitatHR')
 library('shiny')
