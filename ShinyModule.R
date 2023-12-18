@@ -54,7 +54,7 @@ shinyModule <- function(input, output, session, data) {
   mcpgeo.data.re <- reactiveVal()
   
   output$map <- renderPlot({
-  data5_move1 <- to_move(data5)
+  data5_move1 <- moveStack(to_move(data5))
   data.sp <- move2ade(data5_move1)
   data.spt <- spTransform(data.sp,CRSobj=paste0("+proj=aeqd +lat_0=",round(mean(coordinates(data5_move1)[,2]),digits=1)," +lon_0=",round(mean(coordinates(data5_move1)[,1]),digits=1)," +x_0=0 +y_0=0 +ellps=WGS84 +datum=WGS84 +units=m +no_defs"))
     
@@ -62,7 +62,7 @@ shinyModule <- function(input, output, session, data) {
   names(data.geo.all) <- make.names(names(data.geo.all),allow_=FALSE)
   if(!any(names(data.geo.all)=="location.long")) data.geo.all$location.long <- data.geo.all$coords.x1
   if(!any(names(data.geo.all)=="location.lat")) data.geo.all$location.lat <- data.geo.all$coords.x2
-  data.geo <- data.geo.all[,c("location.long","location.lat","trackId")] #trackId is already a valid name (validNames()), so no need to adapt
+  data.geo <- data.geo.all[,c("location.long","location.lat","trackId")] #track is already a valid name (validNames()), so no need to adapt; note that track comes from the move2 object
 
   mcp.data <- mcp(data.spt,percent=input$perc,unin="m",unout="km2")  #mcp() need at least 5 locations per ID, is projected to aeqd in metre!
   mcpgeo.data <- spTransform(mcp.data,CRS("+proj=longlat +ellps=WGS84 +datum=WGS84 +towgs84=0,0,0")) 
