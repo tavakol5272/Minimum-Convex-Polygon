@@ -13,14 +13,17 @@ library("shinyBS")
 
 ## ToDo:
 ## final product:
-# - have the MCPs + tracks displayed on a leaflet 
+# - have the MCPs + tracks displayed on a leaflet map - this substitutes the current one
 # - be able to adjust the %, exactly like in the option "Percentage of points the MCP should overlap" in the current version
-# - enable downloading the MCP as a GeoJSON, kmz, and GeoPackage (GPKG) - all possible to do via sf::st_write()
+# - create a table with an area per track similar to the current one,
+# - enable downloading the MCP as a GeoJSON, kmz, and GeoPackage (GPKG) - all possible to do via sf::st_write() - discart the current options
 # - optional: enable downloading map as a png, probably with webshot or similar. Not sure how straight forward this is
 ## additional changes that are needed
 # replace functions of rgeos, as this library is deprecated
 # if leaflet turns out very complicated, use same approach as in OSM App, so no API-key is needed
-# check that area calculation is correct
+## a more current MCP code: in the script "mcp_code.R"
+
+
 
 
 shinyModuleUserInterface <- function(id, label) {
