@@ -30,13 +30,34 @@
         "name": "lubridate"
       },
 	  	        {
-        "name": "rgeos"
+        "name": "shinyBS"
       },	
 	  {
         "name": "zip"
       },
       {
-        "name":"shinyBS"
+        "name":"sf"
+      },
+      {
+        "name":"mapview"
+      },
+      {
+        "name":"pals"
+      },
+      {
+        "name":"leaflet"
+      },
+      {
+        "name":"leaflet.extras"
+      },
+      {
+        "name":"htmlwidgets"
+      },
+      {
+        "name":"dplyr"
+      },
+      {
+        "name":"webshot2"
       }
     ]
   },
@@ -51,7 +72,8 @@
     "home range",
     "map",
     "MCP shapefile",
-    "shiny"
+    "shiny",
+    "leaflet"
   ],
   "people": [
     {
