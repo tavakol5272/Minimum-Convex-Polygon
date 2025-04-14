@@ -58,6 +58,9 @@
       },
       {
         "name":"webshot2"
+      },
+      {
+        "name":"chromote"
       }
     ]
   },
