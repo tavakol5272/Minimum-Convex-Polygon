@@ -126,18 +126,9 @@ shinyModule <- function(input, output, session, data) {
     mcp <- mcp_cal()
     bounds <- as.vector(st_bbox(dataObj()))
     track_lines <- mcp$track_lines
-    
     sf_mcp <- mcp$data_mcp
-    #if (st_crs(sf_mcp) != st_crs(4326)) {
-      #sf_mcp <- st_transform(sf_mcp, crs = 4326)
-    #}
-    
     ids <- unique(c(sf_mcp$individual_name_deployment_id, track_lines$individual_name_deployment_id))
-    
-    
     pal <- colorFactor(palette = pals::cols25(), domain = ids)
-    
-    
     
     
     leaflet(options = leafletOptions(minZoom = 2)) %>% 
@@ -173,9 +164,7 @@ shinyModule <- function(input, output, session, data) {
       mcp <- mcp_cal()$data_mcp
       mcp_df <- as.data.frame(mcp)
       df <- data.frame(TrackID = rownames(mcp_df), Area = mcp_df$area)
-      write.csv(df, file, row.names = FALSE)
-    }
-  )
+      write.csv(df, file, row.names = FALSE) })
   
   
   
@@ -213,8 +202,15 @@ shinyModule <- function(input, output, session, data) {
   output$download_geojson <- downloadHandler(
     filename = "MCP_shape.geojson",
     content = function(file) {
-      mcp_shape <- st_as_sf(mcp_cal()$data_mcp)
-      st_write(mcp_shape, file, driver = "GeoJSON", delete_dsn = TRUE) } )
+      
+      mcp <- mcp_cal()
+      mcp_shape <- st_as_sf(mcp$data_mcp)
+      track_lines <- mcp$track_lines
+      ids <- unique(mcp_shape$individual_name_deployment_id)
+      pal <- colorFactor(palette = pals::cols25(), domain = ids)
+      mcp_shape$`fill` <- pal(mcp_shape$individual_name_deployment_id)
+    
+      st_write(mcp_shape, file, driver = "GeoJSON", delete_dsn = TRUE)    }  )
   
   ###download shape as GeoPackage (GPKG)
   output$download_gpkg <- downloadHandler(
