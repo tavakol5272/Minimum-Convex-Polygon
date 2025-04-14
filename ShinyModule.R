@@ -17,6 +17,7 @@ library(leaflet.extras)
 library(htmlwidgets)
 library(webshot2)
 library(dplyr)
+library(chromote)
 
 
 shinyModuleUserInterface <- function(id, label) {
@@ -69,24 +70,27 @@ shinyModule <- function(input, output, session, data) {
       ungroup()
   })
   
-  ##select animalin slide bar
+  ##select animal in slide bar
   observe({
     req(data_filtered())
-    animal_choices <- unique(mt_track_id(data_filtered()))
+    df <- data_filtered()
+    
+    animal_choices <- unique(df$individual_name_deployment_id)
     updateCheckboxGroupInput(session = session,
                              inputId = "animal_selector",
                              choices = animal_choices,
-                             selected = animal_choices)  })
+                             selected = animal_choices)
+  })
+  
+  
   
   selected_data <- reactive({
     req(input$animal_selector)
     df <- data_filtered()
-    selected <- df[mt_track_id(df) %in% input$animal_selector, ]
+    selected <- df[mt_track_id(mt_as_move2(df, time_column = "timestamp", track_id_column = "individual_name_deployment_id")) %in% input$animal_selector, ] #changed
     validate(need(nrow(selected) > 0, "No data for selected animals."))
     selected
   })
-  
-  
   
   
   # Compute the MCP 
@@ -95,50 +99,46 @@ shinyModule <- function(input, output, session, data) {
     data_sel <- selected_data()
     #print(class(data_sel))
     
-    move_obj <- mt_as_move2(
-      data_sel,
-      time_column = "timestamp",  
-      track_id_column = "individual_name_deployment_id"  
-    )
-    #print(class(move_obj))
+    crs_proj <- mt_aeqd_crs(data_sel, center = "center", units = "m")
+    sf_data_proj <- st_transform(data_sel, crs_proj) %>%
+      select(individual_name_deployment_id) %>%  
+      mutate(id = individual_name_deployment_id)
     
-    move_stack <- to_move(move_obj)
-    #print(class(move_stack))
+    sp_data_proj <- as(sf_data_proj, "Spatial")  
+    sp_data_proj@data <- data.frame(id = sp_data_proj@data$individual_name_deployment_id)
+    data_mcp <- adehabitatHR::mcp(sp_data_proj, input$perc, "m", "km2")
     
-    sf_data <- st_as_sf(move2ade(move_stack))
-    #print(class(sf_data))
+    sf_mcp <- st_as_sf(data_mcp) %>% 
+      rename(individual_name_deployment_id = id) %>%
+      st_transform(4326)
+    sf_mcp$individual_name_deployment_id <- as.character(sf_mcp$individual_name_deployment_id)
     
-    #crs_proj <- mt_aeqd_crs(sf_data, center = "centroid", units = "m")
-    #sf_data_proj <- st_transform(sf_data, crs_proj)
-    
-    sf_data_proj <- st_transform(sf_data, 4326)
-    #print(class(sf_data_proj))
-    
-    sp_data_proj <- as(sf_data_proj, "Spatial")
-    #print(class(sp_data_proj))
-    
-    sf_data_proj$id = sf_data$individual_name_deployment_id
-    
-    data_mcp <- adehabitatHR::mcp(sp_data_proj, percent = input$perc, unin = "m", unout = "km2")
-    #print(class(data_mcp))
-    
-    return(list(data_mcp = data_mcp,track_lines = mt_track_lines(data_sel)))
+    return(list(data_mcp = sf_mcp, track_lines = mt_track_lines(data_sel)))
     
   })
   
   
   
   ##leaflet map####
+  
   mmap <- reactive({
     req(mcp_cal())
     mcp <- mcp_cal()
-    print(mcp)
     bounds <- as.vector(st_bbox(dataObj()))
-    
-    sf_mcp <- st_as_sf(mcp$data_mcp)
     track_lines <- mcp$track_lines
-    ids <- unique(mcp$track_ids)
+    
+    sf_mcp <- mcp$data_mcp
+    #if (st_crs(sf_mcp) != st_crs(4326)) {
+      #sf_mcp <- st_transform(sf_mcp, crs = 4326)
+    #}
+    
+    ids <- unique(c(sf_mcp$individual_name_deployment_id, track_lines$individual_name_deployment_id))
+    
+    
     pal <- colorFactor(palette = pals::cols25(), domain = ids)
+    
+    
+    
     
     leaflet(options = leafletOptions(minZoom = 2)) %>% 
       fitBounds(bounds[1], bounds[2], bounds[3], bounds[4]) %>%       
@@ -150,8 +150,8 @@ shinyModule <- function(input, output, session, data) {
       
       addPolylines(data = track_lines, color = ~pal(track_lines$individual_name_deployment_id),
                    weight = 3, group = "Tracks") %>%
-      addPolygons(data = sf_mcp, fillColor = ~pal(rownames(sf_mcp)),color = "black",fillOpacity = 0.4,
-                  weight = 2,label = ~rownames(sf_mcp) ,group = "MCPs") %>%
+      addPolygons(data = sf_mcp, fillColor = ~pal(individual_name_deployment_id),color = "black",fillOpacity = 0.4,
+                  weight = 2,label = ~individual_name_deployment_id, ,group = "MCPs") %>%
       
       addLegend(position = "topleft",pal = pal,values = ids,title = "Animal") %>%
       
@@ -163,6 +163,8 @@ shinyModule <- function(input, output, session, data) {
   })
   
   output$leafmap <- renderLeaflet({mmap()})
+  
+  
   
   ###download the table of mcp
   output$download_mcp_table <- downloadHandler(
@@ -182,14 +184,20 @@ shinyModule <- function(input, output, session, data) {
     filename = "LeafletMap.html",
     content = function(file) {
       saveWidget(widget = mmap(),file=file) })
-
+  
+  
+  
   ### save map as PNG
   output$save_png <- downloadHandler(
     filename = "LeafletMap.png",
     content = function(file) {
-      temp_html <- tempfile(fileext = ".html")
-      saveWidget(mmap(), file = temp_html, selfcontained = TRUE)
-      webshot2::webshot(url = temp_html, file = file, vwidth = 1000, vheight = 800) })
+      html_file <- "leaflet_export.html"
+      saveWidget(mmap(), file = html_file, selfcontained = TRUE)
+      Sys.sleep(2)
+      webshot2::webshot(url = html_file,file = file,vwidth = 1000,vheight = 800) })
+   
+  
+  
   
   ###download shape as kmz  
   output$download_kmz <- downloadHandler(
