@@ -1,5 +1,5 @@
 library(move2)
-library(move)
+#library(move)
 library(ggmap)
 library(adehabitatHR)
 library(shiny)
@@ -19,7 +19,7 @@ library(webshot2)
 library(dplyr)
 library(chromote)
 
-
+##### Interface ######
 shinyModuleUserInterface <- function(id, label) {
   ns <- NS(id)
   
@@ -39,14 +39,9 @@ shinyModuleUserInterface <- function(id, label) {
         downloadButton(ns("download_kmz"), "Download MCP as KMZ", class = "btn-sm"),
         downloadButton(ns("download_gpkg"), "Download MCP as GPKG", class = "btn-sm"),
         downloadButton(ns("download_mcp_table"), "Download MCP Table (CSV)", class = "btn-sm"),
-        
-        
-        ,width = 4
-      ),
+        ,width = 4),
       
-      mainPanel(
-        leafletOutput(ns("leafmap"), height = "85vh")
-        ,width = 12)
+      mainPanel(leafletOutput(ns("leafmap"), height = "85vh") ,width = 8)
     )
   )
 }
@@ -70,7 +65,7 @@ shinyModule <- function(input, output, session, data) {
       ungroup()
   })
   
-  ##select animal in slide bar
+  ##select animal in side bar
   observe({
     req(data_filtered())
     df <- data_filtered()
@@ -144,7 +139,7 @@ shinyModule <- function(input, output, session, data) {
       addPolygons(data = sf_mcp, fillColor = ~pal(individual_name_deployment_id),color = "black",fillOpacity = 0.4,
                   weight = 2,label = ~individual_name_deployment_id, ,group = "MCPs") %>%
       
-      addLegend(position = "topleft",pal = pal,values = ids,title = "Animal") %>%
+      addLegend(position = "bottomright",pal = pal,values = ids,title = "Animal") %>%
       
       addLayersControl(
         baseGroups = c("Default", "TopoMap", "Aerial"),
@@ -202,15 +197,13 @@ shinyModule <- function(input, output, session, data) {
   output$download_geojson <- downloadHandler(
     filename = "MCP_shape.geojson",
     content = function(file) {
-      
       mcp <- mcp_cal()
       mcp_shape <- st_as_sf(mcp$data_mcp)
       track_lines <- mcp$track_lines
       ids <- unique(mcp_shape$individual_name_deployment_id)
       pal <- colorFactor(palette = pals::cols25(), domain = ids)
       mcp_shape$`fill` <- pal(mcp_shape$individual_name_deployment_id)
-    
-      st_write(mcp_shape, file, driver = "GeoJSON", delete_dsn = TRUE)    }  )
+      st_write(mcp_shape, file, driver = "GeoJSON", delete_dsn = TRUE)  })
   
   ###download shape as GeoPackage (GPKG)
   output$download_gpkg <- downloadHandler(
