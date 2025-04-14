@@ -82,8 +82,7 @@ shinyModule <- function(input, output, session, data) {
   selected_data <- reactive({
     req(input$animal_selector)
     df <- data_filtered()
-    selected <- df[mt_track_id(mt_as_move2(df, time_column = "timestamp", track_id_column = "individual_name_deployment_id")) %in% input$animal_selector, ] #changed
-    validate(need(nrow(selected) > 0, "No data for selected animals."))
+    selected <- df[mt_track_id(mt_as_move2(df, time_column = "timestamp", track_id_column = "individual_name_deployment_id")) %in% input$animal_selector, ]
     selected
   })
   
@@ -193,7 +192,7 @@ shinyModule <- function(input, output, session, data) {
       st_write(mcp_shape, kml_path, driver="KML", delete_dsn = TRUE)
       zip::zip(zipfile = file, files = kml_path, mode = "cherry-pick")})
   
-  ###download shape as GeoJSON
+  ###download shape as GeoJSON###
   output$download_geojson <- downloadHandler(
     filename = "MCP_shape.geojson",
     content = function(file) {
