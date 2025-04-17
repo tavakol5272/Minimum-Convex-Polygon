@@ -34,8 +34,11 @@ Map as HTML: downloadable as a .html file, and. Not in output overview, but dire
 Map as PNG: captures the map as an image in .png format. Not in output overview, but direct download via button in UI.
 
 MCP Shapes: Geospatial shape created from the MCP analysis, offered in multiple formats. All of them Not in output overview, but direct download via button in UI.
+
 •	.geojson (GeoJSON): Ideal for web applications and open-source tools.
+
 •	.gpkg (GeoPackage): storing vector and raster geodata in a single SQLite database. supports multiple layers and large datasets
+
 •	.kmz :A zipped version of a KML file (Keyhole Markup Language), displays geographic data in Google Earth and Google Maps.
 
 
