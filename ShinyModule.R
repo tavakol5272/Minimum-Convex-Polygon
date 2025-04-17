@@ -136,7 +136,7 @@ shinyModule <- function(input, output, session, data) {
       addPolylines(data = track_lines, color = ~pal(track_lines$individual_name_deployment_id),
                    weight = 3, group = "Tracks") %>%
       addPolygons(data = sf_mcp, fillColor = ~pal(individual_name_deployment_id),color = "black",fillOpacity = 0.4,
-                  weight = 2,label = ~individual_name_deployment_id, ,group = "MCPs") %>%
+                  weight = 2,label = ~individual_name_deployment_id,group = "MCPs") %>%
       
       addLegend(position = "bottomright",pal = pal,values = ids,title = "Animal") %>%
       
