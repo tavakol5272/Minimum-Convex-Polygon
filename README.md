@@ -11,9 +11,13 @@ Calculate the individual MCPs of your Animals' locations and have them plotted o
 ## Documentation
 After down sampling your data to a maximum 5-minute resolution, this App calculates simple Minimum Convex Polygons (MCPs) for each individual of your data set. Note that calculation of MCP is only possible for tracks with at least 5 locations. Individual tracks with less locations are removed for this analysis but are included in the output data set for use in further Apps.
 In addition, the user can select the individual for whom the MCP will be calculated and visualized on the map.
+
 To calculate the planar MCP shapes, the dataset is reprojected to an Azimuthal Equidistant (AEQD) coordinate system centered on the spatial extent of the data, using meters as units.
+
 The MCPs for each individual are plotted on an OpenStreetMap as the default basemap, with transparent, individual-specific colors. Below the polygons, the downsampled tracks of individuals (with sufficiently long tracks) are displayed in the same matching colors. Users can switch to Esri (Environmental Systems Research Institute) basemaps if desired.
+
 A csv-file summarizing the area of each MCP is available through the "Download MCP Table (CSV)" button. Users also can save the currently displayed map as an HTML file by pressing the "Save map as HTML" button, or as a PNG image by pressing the "Save map as PNG" button.
+
 The calculated MCP shapes can also be downloaded in various geospatial formats; As a GeoJSON file by clicking "Download MCP as GeoJSON", As a KMZ (compressed KML) file via "Download MCP as KMZ" and As a GeoPackage (GPKG) file using "Download MCP as GPKG".
 
 ### Input data
