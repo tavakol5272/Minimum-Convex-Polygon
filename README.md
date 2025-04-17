@@ -28,8 +28,11 @@ move2 location
 
 ### Artefacts
 MCP Table (CSV): downloadable csv-file with Table of all individuals and the sizes of their calculated MCPs. Note that this is done only once for the initial setting of perc. Unit of the area values: km^2.
+
 Map as HTML: downloadable as a .html file, and. Not in output overview, but direct download via button in UI. It is generated using Leaflet and shows MCP area on the map.
+
 Map as PNG: captures the map as an image in .png format. Not in output overview, but direct download via button in UI.
+
 MCP Shapes: Geospatial shape created from the MCP analysis, offered in multiple formats. All of them Not in output overview, but direct download via button in UI.
 •	.geojson (GeoJSON): Ideal for web applications and open-source tools.
 •	.gpkg (GeoPackage): storing vector and raster geodata in a single SQLite database. supports multiple layers and large datasets
