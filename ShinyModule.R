@@ -1,5 +1,4 @@
 library(move2)
-#library(move)
 library(ggmap)
 library(adehabitatHR)
 library(shiny)
@@ -24,24 +23,25 @@ shinyModuleUserInterface <- function(id, label) {
   ns <- NS(id)
   
   tagList(
-    titlePanel("Minimum Convex Polygon(MCP) on a Map"),
+    titlePanel("Minimum Convex Polygon (MCP)"),
     sidebarLayout(
       sidebarPanel(
         
         sliderInput(ns("perc"), 
-                    "Percentage of points the MCP should overlap",  
-                    min = 0, max = 100,value = 90, width = "100%" ),
+                    "% of points included in MCP",  
+                    min = 0, max = 100,value = 95, width = "100%" ),
         
         checkboxGroupInput(ns("animal_selector"), "Select Animal:", choices = NULL),
-        downloadButton(ns("save_html"),"Save map as HTML", class = "btn-sm"),
+        downloadButton(ns("save_html"),"Download as HTML", class = "btn-sm"),
         downloadButton(ns("save_png"), "save Map as PNG", class = "btn-sm"),
-        downloadButton(ns("download_geojson"), "Download MCP as GeoJSON", class = "btn-sm"),
-        downloadButton(ns("download_kmz"), "Download MCP as KMZ", class = "btn-sm"),
-        downloadButton(ns("download_gpkg"), "Download MCP as GPKG", class = "btn-sm"),
-        downloadButton(ns("download_mcp_table"), "Download MCP Table (CSV)", class = "btn-sm"),
-        ,width = 4),
+        downloadButton(ns("download_geojson"), "Download MCP-GeoJSON", class = "btn-sm"),
+        downloadButton(ns("download_kmz"), "Download MCP-KMZ", class = "btn-sm"),
+        downloadButton(ns("download_gpkg"), "Download MCP-GPKG", class = "btn-sm"),
+        bsTooltip(id=ns("download_gpkg"), title="Shapefile for QGIS/ArcGIS", placement = "bottom", trigger = "hover", options = list(container = "body")),
+        downloadButton(ns("download_mcp_table"), "Download MCP Areas Table ", class = "btn-sm"),
+        ,width = 2),
       
-      mainPanel(leafletOutput(ns("leafmap"), height = "85vh") ,width = 8)
+      mainPanel(leafletOutput(ns("leafmap"), height = "85vh") ,width = 10)
     )
   )
 }
@@ -55,6 +55,8 @@ shinyModule <- function(input, output, session, data) {
   current <- reactiveVal(data)
   dataObj <- reactive({ data })
   
+  individual_name_deployment_id <- mt_track_id_column(data)
+  timestamp <- mt_time_column(data)
   
   # exclude all individuals with less than 5 locations
   data_filtered <- reactive({
@@ -91,7 +93,6 @@ shinyModule <- function(input, output, session, data) {
   mcp_cal <- reactive({
     req(input$perc)
     data_sel <- selected_data()
-    #print(class(data_sel))
     
     crs_proj <- mt_aeqd_crs(data_sel, center = "center", units = "m")
     sf_data_proj <- st_transform(data_sel, crs_proj) %>%
@@ -122,7 +123,7 @@ shinyModule <- function(input, output, session, data) {
     track_lines <- mcp$track_lines
     sf_mcp <- mcp$data_mcp
     ids <- unique(c(sf_mcp$individual_name_deployment_id, track_lines$individual_name_deployment_id))
-    pal <- colorFactor(palette = pals::cols25(), domain = ids)
+    pal <- colorFactor(palette = pals:::glasbey(), domain = ids)
     
     
     leaflet(options = leafletOptions(minZoom = 2)) %>% 
@@ -130,7 +131,7 @@ shinyModule <- function(input, output, session, data) {
       addTiles() %>%
       addProviderTiles("Esri.WorldTopoMap", group = "TopoMap") %>%
       addProviderTiles("Esri.WorldImagery", group = "Aerial") %>%
-      addTiles(group = "Default") %>%
+      addTiles(group = "OpenStreetMap") %>%
       addScaleBar(position = "topleft") %>%
       
       addPolylines(data = track_lines, color = ~pal(track_lines$individual_name_deployment_id),
@@ -141,7 +142,7 @@ shinyModule <- function(input, output, session, data) {
       addLegend(position = "bottomright",pal = pal,values = ids,title = "Animal") %>%
       
       addLayersControl(
-        baseGroups = c("Default", "TopoMap", "Aerial"),
+        baseGroups = c("OpenStreetMap", "TopoMap", "Aerial"),
         overlayGroups = c("Tracks", "MCPs"),
         options = layersControlOptions(collapsed = FALSE)
       )
@@ -150,21 +151,20 @@ shinyModule <- function(input, output, session, data) {
   output$leafmap <- renderLeaflet({mmap()})
   
   
-  
   ###download the table of mcp
   output$download_mcp_table <- downloadHandler(
-    filename = "mcp_table.csv",
+    filename = paste0("MCPs_",input$perc,"_areas.csv"),
     content = function(file) {
       mcp <- mcp_cal()$data_mcp
       mcp_df <- as.data.frame(mcp)
-      df <- data.frame(TrackID = rownames(mcp_df), Area = mcp_df$area)
+      df <- data.frame(TrackID = rownames(mcp_df), Area_km2 = mcp_df$area, MCP_percent=input$perc)
       write.csv(df, file, row.names = FALSE) })
   
   
   
   ### save map as HTML
   output$save_html <- downloadHandler(
-    filename = "LeafletMap.html",
+    filename = paste0("MCPs_",input$perc,".html"),
     content = function(file) {
       saveWidget(widget = mmap(),file=file) })
   
@@ -172,19 +172,19 @@ shinyModule <- function(input, output, session, data) {
   
   ### save map as PNG
   output$save_png <- downloadHandler(
-    filename = "LeafletMap.png",
+    filename = paste0("MCPs_",input$perc,".png"),
     content = function(file) {
       html_file <- "leaflet_export.html"
       saveWidget(mmap(), file = html_file, selfcontained = TRUE)
       Sys.sleep(2)
       webshot2::webshot(url = html_file,file = file,vwidth = 1000,vheight = 800) })
-   
+  
   
   
   
   ###download shape as kmz  
   output$download_kmz <- downloadHandler(
-    filename = "MCP_shapefile.kmz",
+    filename = paste0("MCPs_",input$perc,".kmz"),
     content = function(file) {
       temp_kmz <- tempdir()
       mcp_shape <- st_as_sf(mcp_cal()$data_mcp)
@@ -194,7 +194,7 @@ shinyModule <- function(input, output, session, data) {
   
   ###download shape as GeoJSON###
   output$download_geojson <- downloadHandler(
-    filename = "MCP_shape.geojson",
+    filename = paste0("MCPs_",input$perc,".geojson"),
     content = function(file) {
       mcp <- mcp_cal()
       mcp_shape <- st_as_sf(mcp$data_mcp)
@@ -206,10 +206,11 @@ shinyModule <- function(input, output, session, data) {
   
   ###download shape as GeoPackage (GPKG)
   output$download_gpkg <- downloadHandler(
-    filename = "MCP_shape.gpkg",
+    filename = paste0("MCPs_",input$perc,".gpkg"),
     content = function(file) {
       mcp_shape <- st_as_sf(mcp_cal()$data_mcp)
       st_write(mcp_shape, file, driver = "GPKG", delete_dsn = TRUE)} )
+  
   
   return(reactive({ current() }))
 }
