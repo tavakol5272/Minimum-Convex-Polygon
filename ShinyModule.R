@@ -29,6 +29,19 @@ shinyModuleUserInterface <- function(id, label) {
         
         sliderInput(ns("perc"), 
                     "% of points included in MCP",  
+
+                    min = 0, max = 100,value = 95, width = "100%"),
+        
+        checkboxGroupInput(ns("animal_selector"), "Select Animal:", choices = NULL),
+        downloadButton(ns("save_html"),"Download as HTML", class = "btn-sm"),
+        # downloadButton(ns("save_png"), "save Map as PNG", class = "btn-sm"),
+        # downloadButton(ns("download_geojson"), "Download MCP as GeoJSON", class = "btn-sm"),
+        downloadButton(ns("download_kmz"), "Download as KMZ", class = "btn-sm"),
+        bsTooltip(id=ns("download_kmz"), title="Format for GoogleEarth", placement = "bottom", trigger = "hover", options = list(container = "body")),
+        downloadButton(ns("download_gpkg"), "Download as GPKG", class = "btn-sm"),
+        bsTooltip(id=ns("download_gpkg"), title="Shapefile for QGIS/ArcGIS", placement = "bottom", trigger = "hover", options = list(container = "body")),
+        downloadButton(ns("download_mcp_table"), "Download MCP Areas Table", class = "btn-sm"),
+
                     min = 0, max = 100,value = 95, width = "100%" ),
         
         checkboxGroupInput(ns("animal_selector"), "Select Animal:", choices = NULL),
@@ -39,6 +52,7 @@ shinyModuleUserInterface <- function(id, label) {
         downloadButton(ns("download_gpkg"), "Download MCP-GPKG", class = "btn-sm"),
         bsTooltip(id=ns("download_gpkg"), title="Shapefile for QGIS/ArcGIS", placement = "bottom", trigger = "hover", options = list(container = "body")),
         downloadButton(ns("download_mcp_table"), "Download MCP Areas Table ", class = "btn-sm"),
+
         ,width = 2),
       
       mainPanel(leafletOutput(ns("leafmap"), height = "85vh") ,width = 10)
@@ -79,8 +93,9 @@ shinyModule <- function(input, output, session, data) {
                              selected = animal_choices)
   })
   
-  
-  
+  ##############
+  ## ToDo: avoid hardcoding: use mt_time_column() & mt_track_id_column()
+  ##############
   selected_data <- reactive({
     req(input$animal_selector)
     df <- data_filtered()
@@ -94,6 +109,9 @@ shinyModule <- function(input, output, session, data) {
     req(input$perc)
     data_sel <- selected_data()
     
+    ##############
+    ## ToDo: "individual_name_deployment_id" is hardcoded, need to be replaced by mt_track_id_column()
+    ##############
     crs_proj <- mt_aeqd_crs(data_sel, center = "center", units = "m")
     sf_data_proj <- st_transform(data_sel, crs_proj) %>%
       select(individual_name_deployment_id) %>%  
@@ -123,9 +141,16 @@ shinyModule <- function(input, output, session, data) {
     track_lines <- mcp$track_lines
     sf_mcp <- mcp$data_mcp
     ids <- unique(c(sf_mcp$individual_name_deployment_id, track_lines$individual_name_deployment_id))
+ Adding_kmz
+    pal <- colorFactor(palette = pals::glasbey(), domain = ids)
+  
+    ############## 
+    ##ToDo: "default" is not the nicest map name....try to find out which map it actually corresponds to
+    ##############
+
     pal <- colorFactor(palette = pals:::glasbey(), domain = ids)
     
-    
+
     leaflet(options = leafletOptions(minZoom = 2)) %>% 
       fitBounds(bounds[1], bounds[2], bounds[3], bounds[4]) %>%       
       addTiles() %>%
@@ -170,6 +195,17 @@ shinyModule <- function(input, output, session, data) {
   
   
   
+
+  # ### save map as PNG
+  # output$save_png <- downloadHandler(
+  #   filename = paste0("MCPs_",input$perc,".png"),
+  #   content = function(file) {
+  #     html_file <- "leaflet_export.html"
+  #     saveWidget(mmap(), file = html_file, selfcontained = TRUE)
+  #     Sys.sleep(2)
+  #     webshot2::webshot(url = html_file,file = file,vwidth = 1000,vheight = 800) })
+  #  
+
   ### save map as PNG
   output$save_png <- downloadHandler(
     filename = paste0("MCPs_",input$perc,".png"),
@@ -179,6 +215,7 @@ shinyModule <- function(input, output, session, data) {
       Sys.sleep(2)
       webshot2::webshot(url = html_file,file = file,vwidth = 1000,vheight = 800) })
   
+
   
   
   
@@ -192,6 +229,19 @@ shinyModule <- function(input, output, session, data) {
       st_write(mcp_shape, kml_path, driver="KML", delete_dsn = TRUE)
       zip::zip(zipfile = file, files = kml_path, mode = "cherry-pick")})
   
+
+  # ###download shape as GeoJSON###
+  # output$download_geojson <- downloadHandler(
+  #   filename = paste0("MCPs_",input$perc,".geojson"),
+  #   content = function(file) {
+  #     mcp <- mcp_cal()
+  #     mcp_shape <- st_as_sf(mcp$data_mcp)
+  #     track_lines <- mcp$track_lines
+  #     ids <- unique(mcp_shape$individual_name_deployment_id)
+  #     pal <- colorFactor(palette = pals::cols25(), domain = ids)
+  #     mcp_shape$`fill` <- pal(mcp_shape$individual_name_deployment_id)
+  #     st_write(mcp_shape, file, driver = "GeoJSON", delete_dsn = TRUE)  })
+
   ###download shape as GeoJSON###
   output$download_geojson <- downloadHandler(
     filename = paste0("MCPs_",input$perc,".geojson"),
@@ -203,6 +253,7 @@ shinyModule <- function(input, output, session, data) {
       pal <- colorFactor(palette = pals::cols25(), domain = ids)
       mcp_shape$`fill` <- pal(mcp_shape$individual_name_deployment_id)
       st_write(mcp_shape, file, driver = "GeoJSON", delete_dsn = TRUE)  })
+
   
   ###download shape as GeoPackage (GPKG)
   output$download_gpkg <- downloadHandler(
