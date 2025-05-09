@@ -36,8 +36,8 @@ shinyModuleUserInterface <- function(id, label) {
         downloadButton(ns("download_gpkg"), "Download as GPKG", class = "btn-sm"),
         bsTooltip(id=ns("download_gpkg"), title="Shapefile for QGIS/ArcGIS", placement = "bottom", trigger = "hover", options = list(container = "body")),
         downloadButton(ns("download_mcp_table"), "Download MCP Areas Table", class = "btn-sm"),
-        ,width = 2),
-      mainPanel(leafletOutput(ns("leafmap"), height = "85vh") ,width = 10)
+        ,width = 3),
+      mainPanel(leafletOutput(ns("leafmap"), height = "85vh") ,width = 9)
     )
   )
 }
