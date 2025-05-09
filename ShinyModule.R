@@ -26,13 +26,8 @@ shinyModuleUserInterface <- function(id, label) {
     titlePanel("Minimum Convex Polygon (MCP)"),
     sidebarLayout(
       sidebarPanel(
-        
-        sliderInput(ns("perc"), 
-                    "% of points included in MCP",  
-
-                    min = 0, max = 100,value = 95, width = "100%"),
-        
-        checkboxGroupInput(ns("animal_selector"), "Select Animal:", choices = NULL),
+        sliderInput(ns("perc"), "% of points included in MCP", min = 0, max = 100, value = 95, width = "100%"),
+        checkboxGroupInput(ns("animal_selector"), "Select Track:", choices = NULL),
         downloadButton(ns("save_html"),"Download as HTML", class = "btn-sm"),
         # downloadButton(ns("save_png"), "save Map as PNG", class = "btn-sm"),
         # downloadButton(ns("download_geojson"), "Download MCP as GeoJSON", class = "btn-sm"),
@@ -41,20 +36,7 @@ shinyModuleUserInterface <- function(id, label) {
         downloadButton(ns("download_gpkg"), "Download as GPKG", class = "btn-sm"),
         bsTooltip(id=ns("download_gpkg"), title="Shapefile for QGIS/ArcGIS", placement = "bottom", trigger = "hover", options = list(container = "body")),
         downloadButton(ns("download_mcp_table"), "Download MCP Areas Table", class = "btn-sm"),
-
-                    min = 0, max = 100,value = 95, width = "100%" ),
-        
-        checkboxGroupInput(ns("animal_selector"), "Select Animal:", choices = NULL),
-        downloadButton(ns("save_html"),"Download as HTML", class = "btn-sm"),
-        downloadButton(ns("save_png"), "save Map as PNG", class = "btn-sm"),
-        downloadButton(ns("download_geojson"), "Download MCP-GeoJSON", class = "btn-sm"),
-        downloadButton(ns("download_kmz"), "Download MCP-KMZ", class = "btn-sm"),
-        downloadButton(ns("download_gpkg"), "Download MCP-GPKG", class = "btn-sm"),
-        bsTooltip(id=ns("download_gpkg"), title="Shapefile for QGIS/ArcGIS", placement = "bottom", trigger = "hover", options = list(container = "body")),
-        downloadButton(ns("download_mcp_table"), "Download MCP Areas Table ", class = "btn-sm"),
-
         ,width = 2),
-      
       mainPanel(leafletOutput(ns("leafmap"), height = "85vh") ,width = 10)
     )
   )
@@ -69,14 +51,12 @@ shinyModule <- function(input, output, session, data) {
   current <- reactiveVal(data)
   dataObj <- reactive({ data })
   
-  individual_name_deployment_id <- mt_track_id_column(data)
-  timestamp <- mt_time_column(data)
-  
+ 
   # exclude all individuals with less than 5 locations
   data_filtered <- reactive({
     req(data)
     data %>%
-      group_by(individual_name_deployment_id) %>%
+      group_by(mt_track_id()) %>%
       filter(n() >= 5) %>%
       ungroup()
   })
@@ -86,20 +66,18 @@ shinyModule <- function(input, output, session, data) {
     req(data_filtered())
     df <- data_filtered()
     
-    animal_choices <- unique(df$individual_name_deployment_id)
+    animal_choices <- unique(mt_track_id(df))
     updateCheckboxGroupInput(session = session,
                              inputId = "animal_selector",
                              choices = animal_choices,
                              selected = animal_choices)
   })
   
-  ##############
-  ## ToDo: avoid hardcoding: use mt_time_column() & mt_track_id_column()
-  ##############
+  
   selected_data <- reactive({
     req(input$animal_selector)
     df <- data_filtered()
-    selected <- df[mt_track_id(mt_as_move2(df, time_column = "timestamp", track_id_column = "individual_name_deployment_id")) %in% input$animal_selector, ]
+    selected <- filter_track_data(df, .track_id = input$animal_selector)
     selected
   })
   
@@ -109,22 +87,19 @@ shinyModule <- function(input, output, session, data) {
     req(input$perc)
     data_sel <- selected_data()
     
-    ##############
-    ## ToDo: "individual_name_deployment_id" is hardcoded, need to be replaced by mt_track_id_column()
-    ##############
     crs_proj <- mt_aeqd_crs(data_sel, center = "center", units = "m")
-    sf_data_proj <- st_transform(data_sel, crs_proj) %>%
-      select(individual_name_deployment_id) %>%  
-      mutate(id = individual_name_deployment_id)
-    
-    sp_data_proj <- as(sf_data_proj, "Spatial")  
-    sp_data_proj@data <- data.frame(id = sp_data_proj@data$individual_name_deployment_id)
+    sf_data_proj <- st_transform(data_sel, crs_proj) 
+    sf_data_proj$id <- mt_track_id(sf_data_proj)
+    sp_data_proj <- as_Spatial(sf_data_proj[,'id'])
+    sp_data_proj <- sp_data_proj[,(names(sp_data_proj) %in% "id")] 
+    sp_data_proj$id <- make.names(as.character(sp_data_proj$id),allow_=F)
+
     data_mcp <- adehabitatHR::mcp(sp_data_proj, input$perc, "m", "km2")
     
     sf_mcp <- st_as_sf(data_mcp) %>% 
-      rename(individual_name_deployment_id = id) %>%
+      rename(track_id = id) %>%
       st_transform(4326)
-    sf_mcp$individual_name_deployment_id <- as.character(sf_mcp$individual_name_deployment_id)
+    sf_mcp$track_id <- as.character(sf_mcp$track_id)
     
     return(list(data_mcp = sf_mcp, track_lines = mt_track_lines(data_sel)))
     
@@ -140,16 +115,8 @@ shinyModule <- function(input, output, session, data) {
     bounds <- as.vector(st_bbox(dataObj()))
     track_lines <- mcp$track_lines
     sf_mcp <- mcp$data_mcp
-    ids <- unique(c(sf_mcp$individual_name_deployment_id, track_lines$individual_name_deployment_id))
- Adding_kmz
+    ids <- unique(c(sf_mcp$track_id, track_lines$track_id))
     pal <- colorFactor(palette = pals::glasbey(), domain = ids)
-  
-    ############## 
-    ##ToDo: "default" is not the nicest map name....try to find out which map it actually corresponds to
-    ##############
-
-    pal <- colorFactor(palette = pals:::glasbey(), domain = ids)
-    
 
     leaflet(options = leafletOptions(minZoom = 2)) %>% 
       fitBounds(bounds[1], bounds[2], bounds[3], bounds[4]) %>%       
@@ -159,12 +126,12 @@ shinyModule <- function(input, output, session, data) {
       addTiles(group = "OpenStreetMap") %>%
       addScaleBar(position = "topleft") %>%
       
-      addPolylines(data = track_lines, color = ~pal(track_lines$individual_name_deployment_id),
+      addPolylines(data = track_lines, color = ~pal(track_lines$track_id),
                    weight = 3, group = "Tracks") %>%
-      addPolygons(data = sf_mcp, fillColor = ~pal(individual_name_deployment_id),color = "black",fillOpacity = 0.4,
-                  weight = 2,label = ~individual_name_deployment_id,group = "MCPs") %>%
+      addPolygons(data = sf_mcp, fillColor = ~pal(track_id),color = "black",fillOpacity = 0.4,
+                  weight = 2,label = ~track_id,group = "MCPs") %>%
       
-      addLegend(position = "bottomright",pal = pal,values = ids,title = "Animal") %>%
+      addLegend(position = "bottomright",pal = pal,values = ids,title = "Track") %>%
       
       addLayersControl(
         baseGroups = c("OpenStreetMap", "TopoMap", "Aerial"),
@@ -194,8 +161,6 @@ shinyModule <- function(input, output, session, data) {
       saveWidget(widget = mmap(),file=file) })
   
   
-  
-
   # ### save map as PNG
   # output$save_png <- downloadHandler(
   #   filename = paste0("MCPs_",input$perc,".png"),
@@ -216,9 +181,6 @@ shinyModule <- function(input, output, session, data) {
       webshot2::webshot(url = html_file,file = file,vwidth = 1000,vheight = 800) })
   
 
-  
-  
-  
   ###download shape as kmz  
   output$download_kmz <- downloadHandler(
     filename = paste0("MCPs_",input$perc,".kmz"),
