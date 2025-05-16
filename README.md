@@ -49,7 +49,7 @@ Additionally, the user can choose whether to display the MCPs, the tracks, or bo
 
 
 ### Null or error handling:
-**Setting "% of points included in MCP"** The MCP percentage is selected using a slider with a default value of 90%. The slider only allows values from 0 to 100, invalid values like NULL or negative numbers cannot be selected by the user. If the user doesn’t choose anything, then the app will just use 95 as the value.
+**Setting "% of points included in MCP"** The MCP percentage is selected using a slider with a default value of 95%. The slider only allows values from 0 to 100, invalid values like NULL or negative numbers cannot be selected by the user. If the user doesn’t choose anything, then the app will just use 95 as the value.
 
 **Setting "Select Track:"** By default, all individuals are selected. If no individuals are selected, no data and no map will be displayed.
 **Data:** The data are not manipulated in this App, but interactively explored. So that a possible Workflow can be continued after this App, the input data set is returned.
