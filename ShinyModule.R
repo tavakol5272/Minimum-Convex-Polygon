@@ -94,7 +94,7 @@ shinyModule <- function(input, output, session, data) {
       st_transform(4326)
     sf_mcp$track_id <- as.character(sf_mcp$track_id)
     
-    data_sel <-  mutate_track_data(data_sel, track_id= as.character(mt_track_data(data_sel)[,mt_track_id_column(data_sel)])) ## adding column 'track_id' to data
+    data_sel <-  mutate_track_data(data_sel, track_id= make.names(data.frame(mt_track_data(data_sel)[,mt_track_id_column(data_sel)])[,1],allow_=F)) ## adding column 'track_id' to data
 
     return(list(data_mcp = sf_mcp, track_lines = mt_track_lines(data_sel)))
     
