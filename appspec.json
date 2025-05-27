@@ -10,7 +10,6 @@
 	    {"name": "shinyBS"},	
 	    {"name": "zip"},
       {"name":"sf"},
-      {"name":"mapview"},
       {"name":"pals"},
       {"name":"leaflet"},
       {"name":"leaflet.extras"},
