@@ -56,11 +56,11 @@
   "firstName": "Nafiseh",
   "middleInitials": null,
   "lastName": "Tavakol",
-  "email": "",
+  "email": "ntavakol@ab.mpg.de",
   "roles": ["contributor"],
-  "orcid": "",
-  "affiliation": "",
-  "affiliationRor": ""
+  "orcid": "0000-0003-3674-4784",
+  "affiliation": "Max-Planck-Institute of Animal Behavior",
+  "affiliationRor": "https://ror.org/026stee22"
 }
   ]
 }
